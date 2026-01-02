@@ -54,15 +54,15 @@ export const USCGCCPage = `
 
       <div style="padding: 5px 15px;">
         <div style="display: flex; gap: 8px; background: #0f172a; padding: 5px 5px 5px 15px; border-radius: 25px; border: 1px solid #38bdf8;">
-          <input type="text" placeholder="咨询问入会要求..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem;">
+          <input type="text" placeholder="请问商会近期活动？..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem;">
           <button style="width: 35px; height: 35px; border-radius: 50%; background: #38bdf8; border: none; color: white; cursor: pointer;">↑</button>
         </div>
       </div>
 
       <div style="padding: 5px 15px 10px;">
         <div style="display: flex; gap: 5px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 10px;">
-          <input type="email" placeholder="输入邮箱以开启 AI 全功能" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
-          <button style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">验证登录</button>
+          <input type="email" placeholder="输入邮箱验证后向AI助手咨询" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+          <button style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">点击确认</button>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export const USCGCCPage = `
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 美国粤商会AI助手正式启用上线...</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 更多动态资讯,即将发布...</div>
         <div style="text-align: center; padding-top: 5px;">
-          <p style="font-size: 0.8rem; color: #38bdf8; margin: 1; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
+          <p style="font-size: 0.8rem; color: #38bdf8; margin: 1; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 -→</p>
         </div>
       </div>
 
