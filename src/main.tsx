@@ -4,9 +4,9 @@ if (root) {
   // --- 新增：二级域名识别逻辑 ---
   const hostname = window.location.hostname;
   
-  // 判断是否通过 uscgcc 三级域名访问
+  // 判断是否通过 uscgcc 二级域名访问
   const isUSCGCC = hostname.includes('uscgcc');
-  // 判断是否通过 ilausa 三级域名访问
+  // 判断是否通过 ilausa 二级域名访问
   const isILAUSA = hostname.includes('ilausa');
 
   // 根据域名定制化内容
@@ -88,4 +88,19 @@ if (root) {
                 font-weight: 500;
                 transition: all 0.2s ease;
                 font-size: 0.95rem;
-              " onmouseover="this.style.background
+              " onmouseover="this.style.background='rgba(56, 189, 248, 0.1)'; this.style.borderColor='#38bdf8';" 
+                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
+              >
+                ${item.name}
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+
+        <footer style="margin-top: 30px; color: #475569; font-size: 0.75rem;">
+          © 2025 WorldZeuser.com我的助手 All Rights Reserved.
+        </footer>
+      </div>
+    </div>
+  `
+}
