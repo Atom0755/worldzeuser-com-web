@@ -24,9 +24,9 @@ export const USCGCCPage = `
       overflow: hidden;
       position: relative;
     ">
-      <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <img src="/USCGCC-LOGO.jpg" style="width: 30px; height: 30px; margin-right: 12px; border-radius: 4px;" />
-        <div>
+      <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px;">
+        <img src="/USCGCC-LOGO.jpg" style="width: 40px; height: 40px; border-radius: 4px;" />
+        <div style="text-align: center;">
           <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
           <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
         </div>
@@ -35,12 +35,12 @@ export const USCGCCPage = `
       <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.2);">
         <div style="display: flex; gap: 6px; justify-content: center;">
           ${['商会简介', '总会长简介', '秘书长简介'].map(item => `
-            <button style="font-size: 10px; padding: 5px 12px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; background: rgba(56, 189, 248, 0.05); cursor: pointer;">${item}</button>
+            <button class="menu-btn" style="font-size: 10px; padding: 5px 12px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; background: rgba(56, 189, 248, 0.05); cursor: pointer;">${item}</button>
           `).join('')}
         </div>
         <div style="display: flex; gap: 6px; justify-content: center;">
           ${['入会指南', '创始单位', '联系我们'].map(item => `
-            <button style="font-size: 10px; padding: 5px 12px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; background: rgba(56, 189, 248, 0.05); cursor: pointer;">${item}</button>
+            <button class="menu-btn" style="font-size: 10px; padding: 5px 12px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; background: rgba(56, 189, 248, 0.05); cursor: pointer;">${item}</button>
           `).join('')}
         </div>
       </div>
@@ -59,10 +59,10 @@ export const USCGCCPage = `
         </div>
       </div>
 
-      <div id="auth-section" style="padding: 5px 15px 10px;">
+      <div id="auth-overlay" style="padding: 5px 15px 10px;">
         <div style="display: flex; gap: 5px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 10px;">
-          <input id="user-email" type="email" placeholder="输入邮箱验证后向AI助手咨询" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
-          <button id="verify-btn" style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">点击确认</button>
+          <input id="email-input" type="email" placeholder="输入邮箱验证后开启 AI 提问" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+          <button id="verify-submit" style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">点击确认</button>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export const USCGCCPage = `
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 美国粤商会AI助手正式启用上线...</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 更多动态资讯,即将发布...</div>
         <div style="text-align: center; padding-top: 5px;">
-          <p style="font-size: 0.8rem; color: #38bdf8; margin: 1; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 -→</p>
+          <p style="font-size: 0.8rem; color: #38bdf8; margin: 0; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
         </div>
       </div>
 
@@ -81,48 +81,50 @@ export const USCGCCPage = `
     </div>
 
     <script>
-      // 这里的逻辑会在页面加载后运行
-      const verifyBtn = document.getElementById('verify-btn');
-      const emailInput = document.getElementById('user-email');
-      const authSection = document.getElementById('auth-section');
+      // 脚本逻辑确保在浏览器中运行
+      setTimeout(() => {
+        const btn = document.getElementById('verify-submit');
+        const emailField = document.getElementById('email-input');
+        const overlay = document.getElementById('auth-overlay');
 
-      // 1. 检查是否已经登录
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) authSection.style.display = 'none';
-      });
+        if (btn && emailField) {
+          btn.addEventListener('click', async () => {
+            const email = emailField.value;
+            if (!email || !email.includes('@')) {
+              alert('请输入有效的电子邮箱地址');
+              return;
+            }
 
-      // 2. 监听登录按钮
-      verifyBtn.addEventListener('click', async () => {
-        const email = emailInput.value;
-        if (!email || !email.includes('@')) {
-          alert('请输入有效的电子邮箱地址');
-          return;
+            btn.innerText = '发送中...';
+            btn.disabled = true;
+
+            try {
+              // 调用全局 supabase 实例
+              const { error } = await window.supabase.auth.signInWithOtp({
+                email: email,
+                options: {
+                  emailRedirectTo: window.location.origin + '/uscgcc'
+                }
+              });
+
+              if (error) throw error;
+              alert('验证链接已发送！\\n请检查您的 Gmail 邮箱。点击链接后将自动跳转回此页面开启对话。');
+              btn.innerText = '已发送';
+            } catch (err) {
+              alert('发送失败: ' + err.message);
+              btn.innerText = '点击确认';
+              btn.disabled = false;
+            }
+          });
         }
 
-        verifyBtn.innerText = '发送中...';
-        verifyBtn.disabled = true;
-
-        const { error } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            emailRedirectTo: window.location.origin + '/uscgcc'
+        // 自动检查登录状态
+        window.supabase.auth.onAuthStateChange((event, session) => {
+          if (session && overlay) {
+            overlay.style.display = 'none';
           }
         });
-
-        if (error) {
-          alert('发送失败: ' + error.message);
-          verifyBtn.innerText = '点击确认';
-          verifyBtn.disabled = false;
-        } else {
-          alert('验证链接已发送到您的邮箱！\\n请在邮箱内点击链接回到此处。');
-          verifyBtn.innerText = '等待验证';
-        }
-      });
-
-      // 3. 监听登录状态变化，一旦点击链接回来就自动隐藏输入框
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (session) authSection.style.display = 'none';
-      });
+      }, 500);
     </script>
   </div>
 `;
