@@ -1,81 +1,86 @@
 const root = document.getElementById('root')
 
 if (root) {
+  // --- 1. 获取当前访问的域名 ---
+  const hostname = window.location.hostname;
+  
+  // --- 2. 核心逻辑：判断是哪个子域名 ---
+  // 判断逻辑：如果域名包含 'uscgcc'，则进入粤商会模式
+  const isUSCGCC = hostname.includes('uscgcc');
+  // 您可以继续添加其他判断，比如 isILAUSA = hostname.includes('ilausa');
+
+  // --- 3. 根据域名设置不同的页面内容 ---
+  const pageContent = isUSCGCC ? {
+    title: "USCGCC 美国粤商会",
+    subtitle: "美中广东总商会官方 AI 助手",
+    description: "您好！我是粤商会智能助理。关于商会历史、入会收费或会长简介，请随时问我。",
+    color: "#38bdf8", // 粤商会用蓝色
+    logo: "/ZEHEM-LOGO.png" // 以后可以换成粤商会专属 Logo
+  } : {
+    title: "WorldZeuser 我的助手",
+    subtitle: "AI Assistants Portal",
+    description: "by ZEHEM.AI 哲亨的爱 created",
+    color: "#f87171", // 主站可以换个颜色区分
+    logo: "/ZEHEM-LOGO.png"
+  };
+
+  // --- 4. 渲染 UI (保持手机屏幕样式) ---
   root.innerHTML = `
     <div style="
       min-height: 100vh;
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 40px 20px;
+      padding: 20px;
     ">
       <div style="
         width: 100%;
-        max-width: 400px;
-        background: rgba(30, 41, 59, 0.7);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 40px; /* 模拟手机的圆角 */
+        max-width: 420px;
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid ${pageContent.color}33; /* 边框色随子域名变化 */
+        border-radius: 48px;
         padding: 40px 24px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
         text-align: center;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(15px);
       ">
+        <img src="${pageContent.logo}" style="width:90px; margin-bottom: 20px;" />
+
+        <h1 style="font-size: 1.6rem; margin: 0; font-weight: 800;">${pageContent.title}</h1>
+        <p style="color: ${pageContent.color}; font-weight: 600; margin-top: 5px;">${pageContent.subtitle}</p>
         
-        <div style="margin-bottom: 24px;">
-          <img src="/ZEHEM-LOGO.png" style="width:100px; height:auto; filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));" />
+        <hr style="width: 40px; border: 1px solid ${pageContent.color}; margin: 25px auto;" />
+
+        <div style="text-align: left; background: rgba(255,255,255,0.03); padding: 18px; border-radius: 20px; border-left: 4px solid ${pageContent.color};">
+           <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin: 0;">
+             ${pageContent.description}
+           </p>
         </div>
 
-        <h1 style="font-size: 1.8rem; margin: 0; letter-spacing: -0.5px; font-weight: 700;">
-          WorldZeuser我的助手<br />
-          <span style="color: #38bdf8; font-size: 1.5rem;">AI Assistants</span>
-        </h1>
-        
-        <p style="color: #94a3b8; margin: 12px 0 0; font-size: 0.9rem;">AI Portal for The Associations</p>
-        <p style="color: #64748b; margin: 4px 0 24px; font-size: 0.8rem;">by ZEHEM.AI 哲亨的爱 created</p>
+        ${!isUSCGCC ? `
+          <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+            ${['USCGCC 美国粤商会', 'USCLGCC 美中物流总商会', 'ILAUSA 美国国际物流协会'].map(name => `
+              <li style="padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; font-size: 0.9rem;">
+                ${name}
+              </li>
+            `).join('')}
+          </ul>
+        ` : `
+          <div style="margin-top: 25px;">
+             <button style="
+               width: 100%; padding: 16px; 
+               background: ${pageContent.color}; color: #000; 
+               border: none; border-radius: 16px; 
+               font-weight: bold; cursor: pointer;
+             ">立即咨询 AI 助手</button>
+          </div>
+        `}
 
-        <hr style="width: 180px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
-
-        <ul style="
-          list-style: none; 
-          padding: 0; 
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin-bottom: 20px;
-        ">
-          ${[
-            { name: 'USCGCC 美国粤商会 / 美中广东总商会', link: '/a/uscgcc' },
-            { name: 'USCLGCC 美中物流总商会', link: '/a/usclgcc' },
-            { name: 'ILAUSA 美国国际物流协会', link: '/a/ilausa' },
-            { name: 'UZLEA 美国浙江物流电商协会', link: '/a/uzlea' },
-            { name: 'GBI 环球创新建材中心 / 美国国际建材协会', link: '/a/gbi' }
-          ].map(item => `
-            <li>
-              <a href="${item.link}" style="
-                display: block;
-                padding: 14px 18px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 16px;
-                color: #e2e8f0;
-                text-decoration: none;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                font-size: 0.95rem;
-              " onmouseover="this.style.background='rgba(56, 189, 248, 0.1)'; this.style.borderColor='#38bdf8';" 
-                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
-              >
-                ${item.name}
-              </a>
-            </li>
-          `).join('')}
-        </ul>
-
-        <footer style="margin-top: 30px; color: #475569; font-size: 0.75rem;">
-          © 2025 WorldZeuser.com我的助手 All Rights Reserved.
+        <footer style="margin-top: 40px; color: #475569; font-size: 0.7rem;">
+          Securely powered by ZEHEM.AI
         </footer>
       </div>
     </div>
