@@ -13,7 +13,7 @@ export const USCGCCPage = `
     <div style="
       width: 100%;
       max-width: 400px;
-      height: 90vh;
+      height: 82vh; 
       background: rgba(30, 41, 59, 0.7);
       border: 2px solid rgba(255, 255, 255, 0.1);
       border-radius: 40px;
@@ -25,9 +25,9 @@ export const USCGCCPage = `
       position: relative;
     ">
       <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <img src="/USCGCC-LOGO.JPG" style="width: 30px; margin-right: 12px;" />
+        <img src="/USCGCC-LOGO.jpg" style="width: 30px; height: 30px; margin-right: 12px; border-radius: 4px;" />
         <div>
-          <div style="font-weight: bold; font-size: 0.9rem;">USCGCC 美国粤商会/美中广东总商会</div>
+          <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
           <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
         </div>
       </div>
@@ -45,33 +45,36 @@ export const USCGCCPage = `
         </div>
       </div>
 
-      <div style="flex: 2; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+      <div style="flex: 1.5; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
         <div style="align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2);">
           您好！我是美国粤商会AI助手。关于本商会的入会要求、近期活动，您可以直接在下方询问我。
         </div>
-        <div id="chat-box"></div>
+        <div id="chat-box" style="display: flex; flex-direction: column; gap: 10px;"></div>
       </div>
 
-      <div style="padding: 10px 15px; margin-bottom: 5px;">
+      <div style="padding: 5px 15px;">
         <div style="display: flex; gap: 8px; background: #0f172a; padding: 5px 5px 5px 15px; border-radius: 25px; border: 1px solid #38bdf8;">
           <input type="text" placeholder="咨询问入会要求..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem;">
           <button style="width: 35px; height: 35px; border-radius: 50%; background: #38bdf8; border: none; color: white; cursor: pointer;">↑</button>
         </div>
       </div>
 
-      <div style="flex: 1; background: rgba(15, 23, 42, 0.4); border-top: 1px solid rgba(255,255,255,0.05); padding: 12px; overflow-y: auto;">
+      <div style="padding: 5px 15px 10px;">
+        <div style="display: flex; gap: 5px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 10px;">
+          <input type="email" placeholder="输入邮箱以开启 AI 全功能" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+          <button style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">验证登录</button>
+        </div>
+      </div>
+
+      <div style="flex: 0.8; background: rgba(15, 23, 42, 0.4); border-top: 1px solid rgba(255,255,255,0.05); padding: 12px; overflow-y: auto;">
         <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold;">商会动态 News</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 2024 美中经贸交流会成功举办...</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 关于新入会成员资格公示通知...</div>
         <div style="font-size: 0.7rem; color: #e2e8f0;">• 美国粤商会AI助手正式启用上线...</div>
       </div>
 
-      <div style="padding: 15px; background: rgba(255, 255, 255, 0.05); text-align: center; backdrop-filter: blur(4px);">
-        <p style="font-size: 0.65rem; color: #94a3b8; margin: 0 0 8px;">申请加入USCGCC商会</p>
-        <div style="display: flex; gap: 5px;">
-          <input type="email" placeholder="邮箱" style="flex: 1; padding: 6px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-          <button style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">验证登录</button>
-        </div>
+      <div style="padding: 10px; background: rgba(30, 41, 59, 0.8); text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+        <p style="font-size: 0.65rem; color: #38bdf8; margin: 0; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
       </div>
     </div>
   </div>
