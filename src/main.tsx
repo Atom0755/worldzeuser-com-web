@@ -36,7 +36,7 @@ if (root) {
         <p style="color: #94a3b8; margin: 12px 0 0; font-size: 0.9rem;">AI Portal for The Associations</p>
         <p style="color: #64748b; margin: 4px 0 24px; font-size: 0.8rem;">by ZEHEM.AI 哲亨的爱 created</p>
 
-        <hr style="width: 50px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
+        <hr style="width: 120px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
 
         <ul style="
           list-style: none; 
@@ -51,7 +51,7 @@ if (root) {
             { name: 'USCLGCC 美中物流总商会', link: '/a/usclgcc' },
             { name: 'ILAUSA 美国国际物流协会', link: '/a/ilausa' },
             { name: 'UZLEA 美国浙江物流电商协会', link: '/a/uzlea' },
-            { name: 'GBI 环球创新建材中心', link: '/a/gbi' }
+            { name: 'GBI 环球创新建材中心 / 美国国际建材协会', link: '/a/gbi' }
           ].map(item => `
             <li>
               <a href="${item.link}" style="
@@ -75,7 +75,7 @@ if (root) {
         </ul>
 
         <footer style="margin-top: 30px; color: #475569; font-size: 0.75rem;">
-          © 2025 WorldZeuser All Rights Reserved.
+          © 2025 WorldZeuser.com我的助手 All Rights Reserved.
         </footer>
       </div>
     </div>
