@@ -36,7 +36,7 @@ if (root) {
         <p style="color: #94a3b8; margin: 12px 0 0; font-size: 0.9rem;">AI Portal for The Associations</p>
         <p style="color: #64748b; margin: 4px 0 24px; font-size: 0.8rem;">by ZEHEM.AI 哲亨的爱 created</p>
 
-        <hr style="width: 120px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
+        <hr style="width: 180px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
 
         <ul style="
           list-style: none; 
