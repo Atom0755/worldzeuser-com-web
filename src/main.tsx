@@ -66,41 +66,35 @@ if (root) {
 
         <hr style="width: 180px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
 
-        <ul style="
-          list-style: none; 
-          padding: 0; 
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin-bottom: 20px;
-        ">
-          ${[
-            { name: 'USCGCC 美国粤商会 / 美中广东总商会', link: '/a/uscgcc' },
-            { name: 'USCLGCC 美中物流总商会', link: '/a/usclgcc' },
-            { name: 'ILAUSA 美国国际物流协会', link: '/a/ilausa' },
-            { name: 'UZLEA 美国浙江物流电商协会', link: '/a/uzlea' },
-            { name: 'GBI 环球创新建材中心 / 美国国际建材协会', link: '/a/gbi' }
-          ].map(item => `
-            <li>
-              <a href="${item.link}" style="
-                display: block;
-                padding: 14px 18px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 16px;
-                color: #e2e8f0;
-                text-decoration: none;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                font-size: 0.95rem;
-              " onmouseover="this.style.background='rgba(56, 189, 248, 0.1)'; this.style.borderColor='#38bdf8';" 
-                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
-              >
-                ${item.name}
-              </a>
-            </li>
-          `).join('')}
-        </ul>
+        // 修改后的列表部分
+<ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+  ${[
+    { name: 'USCGCC 美国粤商会 / 美中广东总商会', link: 'https://uscgcc.worldzeuser.com' }, // 改为完整二级域名
+    { name: 'USCLGCC 美中物流总商会', link: 'https://usclgcc.worldzeuser.com' },
+    { name: 'ILAUSA 美国国际物流协会', link: 'https://ilausa.worldzeuser.com' },
+    { name: 'UZLEA 美国浙江物流电商协会', link: 'https://uzlea.worldzeuser.com' },
+    { name: 'GBI 环球创新建材中心', link: 'https://gbi.worldzeuser.com' }
+  ].map(item => `
+    <li>
+      <a href="${item.link}" style="
+        display: block;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        color: #e2e8f0;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+      " onmouseover="this.style.background='rgba(56, 189, 248, 0.1)'; this.style.borderColor='#38bdf8';" 
+         onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
+      >
+        ${item.name}
+      </a>
+    </li>
+  `).join('')}
+</ul>
 
         <footer style="margin-top: 30px; color: #475569; font-size: 0.75rem;">
           © 2025 WorldZeuser.com我的助手 All Rights Reserved.
