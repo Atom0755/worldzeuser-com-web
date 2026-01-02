@@ -1,5 +1,5 @@
-// src/pages/uscgcc.tsx
-export const USCGCCPage = `
+// src/pages/ilausa.tsx
+export const ILAUSAPage = `
   <div style="height: 100vh; display: flex; flex-direction: column; background: #0f172a; color: white; font-family: sans-serif;">
     <div style="padding: 15px; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
       <img src="/ZEHEM-LOGO.png" style="width: 40px; margin-right: 12px;" />
