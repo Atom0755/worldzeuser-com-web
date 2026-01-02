@@ -1,15 +1,19 @@
 const root = document.getElementById('root')
 
 if (root) {
-  // --- 新增：二级域名识别逻辑 ---
-  const hostname = window.location.hostname;
-  
-  // 判断是否通过 uscgcc 二级域名访问
-  const isUSCGCC = hostname.includes('uscgcc');
-  // 判断是否通过 ilausa 二级域名访问
-  const isILAUSA = hostname.includes('ilausa');
+  // --- 1. 获取当前环境信息 ---
+  const hostname = window.location.hostname.toLowerCase(); // 获取域名
+  const pathname = window.location.pathname.toLowerCase(); // 获取路径 (/a/uscgcc)
 
-  // 根据域名定制化内容
+  // --- 2. 强化判断逻辑 ---
+  // 只要满足以下任一条件，就显示粤商会内容：
+  // 条件 A: 域名里包含 uscgcc (二级域名访问)
+  // 条件 B: 路径是 /a/uscgcc (首页点击链接访问)
+  const isUSCGCC = hostname.includes('uscgcc') || pathname.includes('/a/uscgcc');
+  
+  const isILAUSA = hostname.includes('ilausa') || pathname.includes('/a/ilausa');
+
+  // --- 3. 根据判断设置显示内容 ---
   let displayTitle = "WorldZeuser我的助手";
   let displaySubtitle = "AI Assistants";
   let displayWelcome = "AI Portal for The Associations";
@@ -24,6 +28,7 @@ if (root) {
     displayWelcome = "专注国际物流资源对接与行业咨询";
   }
 
+  // --- 4. 渲染 UI (保持您的精美样式不变) ---
   root.innerHTML = `
     <div style="
       min-height: 100vh;
@@ -40,7 +45,7 @@ if (root) {
         max-width: 400px;
         background: rgba(30, 41, 59, 0.7);
         border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 40px; /* 模拟手机的圆角 */
+        border-radius: 40px;
         padding: 40px 24px;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         text-align: center;
