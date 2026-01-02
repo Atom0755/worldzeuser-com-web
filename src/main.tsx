@@ -66,7 +66,7 @@ if (root) {
 
         <hr style="width: 180px; border: 0; border-top: 2px solid #38bdf8; margin: 20px auto 30px;" />
 
-        // 修改后的列表部分
+        
 <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
   ${[
     { name: 'USCGCC 美国粤商会 / 美中广东总商会', link: 'https://uscgcc.worldzeuser.com' }, // 改为完整二级域名
