@@ -59,10 +59,10 @@ export const USCGCCPage = `
         </div>
       </div>
 
-      <div style="padding: 5px 15px 10px;">
+      <div id="auth-section" style="padding: 5px 15px 10px;">
         <div style="display: flex; gap: 5px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 10px;">
-          <input type="email" placeholder="输入邮箱验证后向AI助手咨询" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
-          <button style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">点击确认</button>
+          <input id="user-email" type="email" placeholder="输入邮箱验证后向AI助手咨询" style="flex: 1; padding: 6px 12px; font-size: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+          <button id="verify-btn" style="padding: 6px 12px; font-size: 0.7rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">点击确认</button>
         </div>
       </div>
 
@@ -79,5 +79,50 @@ export const USCGCCPage = `
 
       <div style="padding: 5px;"></div>
     </div>
+
+    <script>
+      // 这里的逻辑会在页面加载后运行
+      const verifyBtn = document.getElementById('verify-btn');
+      const emailInput = document.getElementById('user-email');
+      const authSection = document.getElementById('auth-section');
+
+      // 1. 检查是否已经登录
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) authSection.style.display = 'none';
+      });
+
+      // 2. 监听登录按钮
+      verifyBtn.addEventListener('click', async () => {
+        const email = emailInput.value;
+        if (!email || !email.includes('@')) {
+          alert('请输入有效的电子邮箱地址');
+          return;
+        }
+
+        verifyBtn.innerText = '发送中...';
+        verifyBtn.disabled = true;
+
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: {
+            emailRedirectTo: window.location.origin + '/uscgcc'
+          }
+        });
+
+        if (error) {
+          alert('发送失败: ' + error.message);
+          verifyBtn.innerText = '点击确认';
+          verifyBtn.disabled = false;
+        } else {
+          alert('验证链接已发送到您的邮箱！\\n请在邮箱内点击链接回到此处。');
+          verifyBtn.innerText = '等待验证';
+        }
+      });
+
+      // 3. 监听登录状态变化，一旦点击链接回来就自动隐藏输入框
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session) authSection.style.display = 'none';
+      });
+    </script>
   </div>
 `;
