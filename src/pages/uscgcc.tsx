@@ -70,12 +70,14 @@ export const USCGCCPage = `
         <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold;">商会动态 News</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 2024 美中经贸交流会成功举办...</div>
         <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 关于新入会成员资格公示通知...</div>
-        <div style="font-size: 0.7rem; color: #e2e8f0;">• 美国粤商会AI助手正式启用上线...</div>
+        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 美国粤商会AI助手正式启用上线...</div>
+        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 更多动态资讯,即将发布...</div>
+        <div style="text-align: center; padding-top: 5px;">
+          <p style="font-size: 0.8rem; color: #38bdf8; margin: 1; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
+        </div>
       </div>
 
-      <div style="padding: 10px; background: rgba(30, 41, 59, 0.8); text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
-        <p style="font-size: 0.65rem; color: #38bdf8; margin: 0; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
-      </div>
+      <div style="padding: 5px;"></div>
     </div>
   </div>
 `;
