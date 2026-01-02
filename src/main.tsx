@@ -91,10 +91,10 @@ if (root) {
           </footer>
         </div>
       </div>
-    `
+    `; // ✅ 补充分号，明确赋值结束
   }
 
-  // ✅ 新增交互逻辑：放在 if(root) 内部，避免 root 为空时报错
+  // ✅ 新增交互逻辑：放在 if(root) 内部
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
     if (!target) return
@@ -125,4 +125,4 @@ if (root) {
       }
     }
   })
-
+} // ✅ 这是最后一行，关闭 if (root)
