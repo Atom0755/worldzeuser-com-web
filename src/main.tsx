@@ -534,22 +534,26 @@ async function handleAdminLogin(e: any) {
 
     if (error) throw error;
 
-    alertDiv?.innerHTML = `
-      <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
-        ✅ 登录成功！正在跳转...
-      </div>
-    `;
+    if (alertDiv) {
+      alertDiv.innerHTML = `
+        <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
+          ✅ 登录成功！正在跳转...
+        </div>
+      `;
+    }
 
     setTimeout(() => {
       (window as any).location.href = '/admin-unified.html';
     }, 1000);
 
   } catch (error: any) {
-    alertDiv?.innerHTML = `
-      <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
-        ❌ ${error.message}
-      </div>
-    `;
+    if (alertDiv) {
+      alertDiv.innerHTML = `
+        <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
+          ❌ ${error.message}
+        </div>
+      `;
+    }
     // 6. 出错时恢复按钮状态
     if (btn) btn.disabled = false;
     if (btn) btn.textContent = '🚀 登录';
