@@ -18,6 +18,10 @@ if (root) {
     root.innerHTML = USCGCCPage
     requestAnimationFrame(() => {
       initUSCGCCPage()
+      requestAnimationFrame(() => {
+        initUSCGCCPage()
+        initAdminLogin() // <--- 必须增加这一行，否则点击 Logo 没反应
+      })
     })
   } else if (hostname.startsWith('usclgcc.') || pathname.startsWith('/a/usclgcc')) {
     root.innerHTML = USCLGCCPage
@@ -346,13 +350,16 @@ function initAdminLogin() {
   }
 
   // 添加点击事件
-  logo.style.cursor = 'pointer';
-  logo.title = '管理员登录';
-  
-  logo.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showLoginModal();
-  });
+  if (logo) {
+    const logoBtn = logo as HTMLElement;
+    logoBtn.style.cursor = 'pointer';
+    logoBtn.title = '管理员登录';
+    
+    logoBtn.onclick = (e) => {
+      e.stopPropagation();
+      showLoginModal();
+    };
+  }
 }
 
 // 显示登录弹窗
@@ -491,7 +498,10 @@ function showLoginModal() {
   });
 
   // 处理登录
-  document.getElementById('adminLoginForm').addEventListener('submit', handleAdminLogin);
+  const loginForm = document.getElementById('adminLoginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', handleAdminLogin);
+  }
 }
 
 // 处理管理员登录
