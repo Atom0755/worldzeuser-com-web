@@ -534,7 +534,7 @@ async function handleAdminLogin(e: any) {
 
     if (error) throw error;
 
-    alertDiv？.innerHTML = `
+    alertDiv?.innerHTML = `
       <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
         ✅ 登录成功！正在跳转...
       </div>
@@ -545,7 +545,7 @@ async function handleAdminLogin(e: any) {
     }, 1000);
 
   } catch (error: any) {
-    alertDiv？.innerHTML = `
+    alertDiv?.innerHTML = `
       <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
         ❌ ${error.message}
       </div>
