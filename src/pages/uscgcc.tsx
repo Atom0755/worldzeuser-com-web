@@ -25,7 +25,7 @@ export const USCGCCPage = `
       position: relative;
     ">
       <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px;">
-        <img src="/USCGCC-LOGO.jpg" style="width: 40px; height: 40px; border-radius: 4px;" />
+        <img src="/USCGCC-LOGO.jpg" class="logo-img" style="width: 40px; height: 40px; border-radius: 4px;" />
         <div style="text-align: center;">
           <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
           <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
