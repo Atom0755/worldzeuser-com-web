@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USCGCC 管理后台</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    /* 登录页面 */
+    #loginPage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 15px;
+    }
+
+    .logo h2 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .logo p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #5568d3;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    /* 管理后台 */
+    #adminPage {
+      display: none;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-email {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .btn-logout {
+      background: #dc3545;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-logout:hover {
+      background: #c82333;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      background: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      min-height: 150px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      margin-left: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+
+    .stat-card p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .item-list {
+      margin-top: 20px;
+    }
+
+    .item {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s;
+    }
+
+    .item:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .item h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .item p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .item-meta {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge-info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div id="loginPage">
+    <div class="login-card">
+      <div class="logo">
+        <img src="https://uscgcc.worldzeuser.com/logo.png" alt="USCGCC Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23667eea%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2240%22 font-weight=%22bold%22%3ELOGO%3C/text%3E%3C/svg%3E'">
+        <h2>USCGCC 管理后台</h2>
+        <p>美国粤商会内容管理系统</p>
+      </div>
+
+      <div id="loginAlert"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">📧 管理员邮箱</label>
+          <input type="email" id="email" required placeholder="admin@uscgcc.org">
+        </div>
+
+        <div class="form-group">
+          <label for="password">🔒 密码</label>
+          <input type="password" id="password" required placeholder="输入密码">
+        </div>
+
+        <button type="submit" class="btn" id="loginBtn">🔐 登录</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" onclick="showRegisterPage(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px; margin-right: 15px;">
+          📝 注册新账号
+        </a>
+        <a href="#" onclick="showForgotPasswordPage(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+          🔑 忘记密码？
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注册页面 -->
+  <div id="registerPage" style="display: none;">
+    <div class="login-card">
+      <div class="logo">
+        <img src="https://uscgcc.worldzeuser.com/logo.png" alt="USCGCC Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23667eea%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2240%22 font-weight=%22bold%22%3ELOGO%3C/text%3E%3C/svg%3E'">
+        <h2>注册管理员账号</h2>
+        <p>USCGCC 内容管理系统</p>
+      </div>
+
+      <div id="registerAlert"></div>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="inviteCode">🎫 邀请码 *</label>
+          <input type="text" id="inviteCode" required placeholder="输入邀请码" style="text-transform: uppercase;">
+          <small style="color:#666;font-size:12px;">请输入管理员提供的邀请码</small>
+        </div>
+
+        <div class="form-group">
+          <label for="regEmail">📧 邮箱地址</label>
+          <input type="email" id="regEmail" required placeholder="your.email@uscgcc.org">
+        </div>
+
+        <div class="form-group">
+          <label for="regPassword">🔒 密码</label>
+          <input type="password" id="regPassword" required placeholder="至少8位，包含字母和数字" minlength="8">
+          <small style="color:#666;font-size:12px;">建议使用强密码：大小写字母+数字+特殊字符</small>
+        </div>
+
+        <div class="form-group">
+          <label for="regPasswordConfirm">🔒 确认密码</label>
+          <input type="password" id="regPasswordConfirm" required placeholder="再次输入密码" minlength="8">
+        </div>
+
+        <button type="submit" class="btn" id="registerBtn">📝 注册</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" onclick="showLoginPage(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+          ← 返回登录
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 忘记密码页面 -->
+  <div id="forgotPasswordPage" style="display: none;">
+    <div class="login-card">
+      <div class="logo">
+        <img src="https://uscgcc.worldzeuser.com/logo.png" alt="USCGCC Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23667eea%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2240%22 font-weight=%22bold%22%3ELOGO%3C/text%3E%3C/svg%3E'">
+        <h2>重置密码</h2>
+        <p>我们将发送重置链接到您的邮箱</p>
+      </div>
+
+      <div id="forgotPasswordAlert"></div>
+
+      <form id="forgotPasswordForm">
+        <div class="form-group">
+          <label for="resetEmail">📧 注册邮箱</label>
+          <input type="email" id="resetEmail" required placeholder="输入您的注册邮箱">
+        </div>
+
+        <button type="submit" class="btn" id="resetBtn">📧 发送重置链接</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" onclick="showLoginPage(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+          ← 返回登录
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理后台页面 -->
+  <div id="adminPage">
+    <div class="container">
+      <!-- 顶部导航 -->
+      <div class="header">
+        <h1>📊 USCGCC 管理后台</h1>
+        <div class="user-info">
+          <span class="user-email" id="userEmail"></span>
+          <button class="btn-logout" onclick="logout()">🚪 退出</button>
+        </div>
+      </div>
+
+      <div id="adminAlert"></div>
+
+      <!-- 标签页 -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('knowledge')">📚 知识库管理</div>
+        <div class="tab" onclick="switchTab('news')">📰 动态新闻</div>
+        <div class="tab" onclick="switchTab('settings')">⚙️ 系统设置</div>
+      </div>
+
+      <!-- 知识库管理 -->
+      <div id="knowledgeTab" class="tab-content active">
+        <div class="stats">
+          <div class="stat-card">
+            <h3 id="kbTotal">-</h3>
+            <p>知识库条目</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="kbWithEmbedding">-</h3>
+            <p>已生成向量</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>➕ 添加知识库内容</h2>
+          <form id="knowledgeForm">
+            <div class="form-group">
+              <label>标题 *</label>
+              <input type="text" id="kb_title" required placeholder="例如：商会简介">
+            </div>
+
+            <div class="form-group">
+              <label>分类 *</label>
+              <select id="kb_category">
+                <option value="商会简介">商会简介</option>
+                <option value="总会长简介">总会长简介</option>
+                <option value="秘书长简介">秘书长简介</option>
+                <option value="入会指南">入会指南</option>
+                <option value="创始单位">创始单位</option>
+                <option value="联系我们">联系我们</option>
+                <option value="商会动态">商会动态</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>内容 *</label>
+              <textarea id="kb_content" required placeholder="输入内容..."></textarea>
+            </div>
+
+            <button type="submit" class="btn">💾 保存并生成向量</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>📋 现有知识库</h2>
+          <div id="knowledgeList" class="item-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 动态新闻管理 -->
+      <div id="newsTab" class="tab-content">
+        <div class="stats">
+          <div class="stat-card">
+            <h3 id="newsTotal">-</h3>
+            <p>总动态数</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="newsPublished">-</h3>
+            <p>已发布</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>➕ 发布新动态</h2>
+          <form id="newsForm">
+            <div class="form-group">
+              <label>标题 *</label>
+              <input type="text" id="news_title" required placeholder="例如：2024 美中经贸交流会成功举办">
+            </div>
+
+            <div class="form-group">
+              <label>内容 *</label>
+              <textarea id="news_content" required placeholder="输入动态内容..."></textarea>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>媒体类型</label>
+                <select id="news_mediaType" onchange="toggleMediaUrl()">
+                  <option value="text">纯文字</option>
+                  <option value="image">图片</option>
+                  <option value="video">视频</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>状态</label>
+                <select id="news_status">
+                  <option value="published">立即发布</option>
+                  <option value="draft">保存为草稿</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" id="mediaUrlGroup" style="display:none;">
+              <label>媒体链接</label>
+              <input type="text" id="news_mediaUrl" placeholder="图片或视频的URL">
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="news_addToKB" checked>
+                同时添加到知识库（AI可引用此动态）
+              </label>
+            </div>
+
+            <button type="submit" class="btn">📢 发布动态</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>📋 已发布动态</h2>
+          <div id="newsList" class="item-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统设置 -->
+      <div id="settingsTab" class="tab-content">
+        <div class="card">
+          <h2>🎫 邀请码管理</h2>
+          <p style="color:#666;margin-bottom:20px;">生成和管理注册邀请码，控制谁可以注册管理员账号</p>
+
+          <div class="form-group">
+            <label>生成新邀请码</label>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;align-items:end;">
+              <div>
+                <input type="text" id="inviteDesc" placeholder="描述（如：新管理员）" style="width:100%;">
+              </div>
+              <div>
+                <input type="number" id="inviteMaxUses" value="1" min="1" placeholder="可用次数" style="width:100%;">
+              </div>
+              <div>
+                <input type="number" id="inviteExpireDays" value="30" min="1" placeholder="有效天数" style="width:100%;">
+              </div>
+              <button class="btn" onclick="generateInviteCode()" style="margin:0;">🎫 生成</button>
+            </div>
+          </div>
+
+          <div id="inviteCodesList" style="margin-top:20px;">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>⚙️ 系统信息</h2>
+          <p><strong>租户：</strong> uscgcc</p>
+          <p><strong>版本：</strong> v1.0.0</p>
+          <p><strong>AI 模型：</strong> gpt-4o-mini</p>
+          <p><strong>向量维度：</strong> 1536</p>
+        </div>
+
+        <div class="card">
+          <h2>🔧 维护工具</h2>
+          <button class="btn" onclick="regenerateEmbeddings()">🔄 重新生成所有向量</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化 Supabase
+    const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1MDMzOTYsImV4cCI6MjA1MjA3OTM5Nn0.2AwbeB0xIdHwNILQ3Fg9dPHCEm6QczRPCFMu_hKjqPk';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TENANT_SLUG = 'uscgcc';
+
+    // 检查登录状态
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        showAdminPage(session.user);
+      }
+    }
+
+    // 页面切换函数
+    function showLoginPage() {
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('registerPage').style.display = 'none';
+      document.getElementById('forgotPasswordPage').style.display = 'none';
+    }
+
+    function showRegisterPage() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('registerPage').style.display = 'flex';
+      document.getElementById('forgotPasswordPage').style.display = 'none';
+    }
+
+    function showForgotPasswordPage() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('registerPage').style.display = 'none';
+      document.getElementById('forgotPasswordPage').style.display = 'flex';
+    }
+
+    // 显示提示信息
+    function showAlert(elementId, message, type = 'error') {
+      const alertDiv = document.getElementById(elementId);
+      const className = type === 'error' ? 'alert-error' : 'alert-success';
+      alertDiv.innerHTML = `<div class="alert ${className}">${message}</div>`;
+    }
+
+    // 清除提示信息
+    function clearAlert(elementId) {
+      document.getElementById(elementId).innerHTML = '';
+    }
+
+    // 登录
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      clearAlert('loginAlert');
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+        if (error) throw error;
+
+        showAdminPage(data.user);
+      } catch (error) {
+        let errorMessage = error.message;
+        
+        // 友好的错误提示
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = '邮箱或密码错误，请重试';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = '请先验证您的邮箱，检查收件箱中的确认邮件';
+        }
+        
+        showAlert('loginAlert', `❌ ${errorMessage}`, 'error');
+        console.error('登录失败:', error);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 登录';
+      }
+    });
+
+    // 注册
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('registerBtn');
+      btn.disabled = true;
+      btn.textContent = '验证中...';
+      clearAlert('registerAlert');
+
+      const inviteCode = document.getElementById('inviteCode').value.trim().toUpperCase();
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+      // 验证密码
+      if (password !== passwordConfirm) {
+        showAlert('registerAlert', '❌ 两次输入的密码不一致', 'error');
+        btn.disabled = false;
+        btn.textContent = '📝 注册';
+        return;
+      }
+
+      if (password.length < 8) {
+        showAlert('registerAlert', '❌ 密码至少需要8位', 'error');
+        btn.disabled = false;
+        btn.textContent = '📝 注册';
+        return;
+      }
+
+      try {
+        // 1. 验证邀请码
+        btn.textContent = '验证邀请码...';
+        const { data: inviteData, error: inviteError } = await supabase
+          .rpc('validate_invite_code', { p_code: inviteCode });
+
+        if (inviteError) throw new Error('邀请码验证失败');
+        
+        if (!inviteData) {
+          throw new Error('邀请码无效、已过期或已达到使用上限');
+        }
+
+        // 2. 注册用户
+        btn.textContent = '注册中...';
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: window.location.origin + '/admin-unified.html',
+            data: {
+              invite_code: inviteCode  // 保存使用的邀请码
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // 3. 记录邀请码使用
+        await supabase.rpc('record_invite_code_usage', {
+          p_code: inviteCode,
+          p_email: email,
+          p_user_id: data.user?.id || null
+        });
+
+        // 注册成功
+        showAlert('registerAlert', 
+          `✅ 注册成功！我们已发送验证邮件到 ${email}，请查收并点击链接验证您的邮箱。`, 
+          'success'
+        );
+        
+        // 清空表单
+        document.getElementById('registerForm').reset();
+        
+        // 3秒后跳转到登录页
+        setTimeout(() => {
+          showLoginPage();
+          showAlert('loginAlert', '✅ 注册成功！请验证邮箱后登录', 'success');
+        }, 3000);
+
+      } catch (error) {
+        let errorMessage = error.message;
+        
+        // 友好的错误提示
+        if (error.message.includes('already registered')) {
+          errorMessage = '该邮箱已被注册，请直接登录或使用其他邮箱';
+        } else if (error.message.includes('邀请码')) {
+          errorMessage = error.message;
+        }
+        
+        showAlert('registerAlert', `❌ ${errorMessage}`, 'error');
+        console.error('注册失败:', error);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📝 注册';
+      }
+    });
+
+    // 忘记密码
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('resetBtn');
+      btn.disabled = true;
+      btn.textContent = '发送中...';
+      clearAlert('forgotPasswordAlert');
+
+      const email = document.getElementById('resetEmail').value;
+
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/admin-unified.html'
+        });
+
+        if (error) throw error;
+
+        // 发送成功
+        showAlert('forgotPasswordAlert', 
+          `✅ 重置链接已发送到 ${email}，请查收邮件并点击链接重置密码。`, 
+          'success'
+        );
+        
+        // 清空表单
+        document.getElementById('forgotPasswordForm').reset();
+
+      } catch (error) {
+        showAlert('forgotPasswordAlert', `❌ ${error.message}`, 'error');
+        console.error('发送重置邮件失败:', error);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📧 发送重置链接';
+      }
+    });
+
+    // 显示管理页面
+    function showAdminPage(user) {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('adminPage').style.display = 'block';
+      document.getElementById('userEmail').textContent = user.email;
+      
+      loadAllData();
+    }
+
+    // 退出登录
+    async function logout() {
+      await supabase.auth.signOut();
+      location.reload();
+    }
+
+    // 切换标签页
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tab + 'Tab').classList.add('active');
+    }
+
+    // 加载所有数据
+    async function loadAllData() {
+      loadKnowledgeStats();
+      loadKnowledgeList();
+      loadNewsStats();
+      loadNewsList();
+      loadInviteCodes();
+    }
+
+    // ... (后续代码在下一个文件中继续)
+
+    // 知识库统计
+    async function loadKnowledgeStats() {
+      const { data } = await supabase
+        .from('knowledge_base')
+        .select('id, embedding')
+        .eq('tenant_slug', TENANT_SLUG);
+      
+      document.getElementById('kbTotal').textContent = data?.length || 0;
+      document.getElementById('kbWithEmbedding').textContent = 
+        data?.filter(i => i.embedding).length || 0;
+    }
+
+    // 知识库列表
+    async function loadKnowledgeList() {
+      const listDiv = document.getElementById('knowledgeList');
+      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+      const { data, error } = await supabase
+        .from('knowledge_base')
+        .select('*')
+        .eq('tenant_slug', TENANT_SLUG)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无知识库</p>';
+        return;
+      }
+
+      listDiv.innerHTML = data.map(item => `
+        <div class="item">
+          <h3>
+            ${item.title}
+            <span class="badge badge-success">${item.category || '未分类'}</span>
+            ${item.embedding ? '<span class="badge badge-success">✓ 已生成向量</span>' : ''}
+          </h3>
+          <p>${(item.content || '').substring(0, 150)}...</p>
+          <div class="item-meta">
+            <span>📅 ${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-danger" onclick="deleteKnowledge('${item.id}', '${item.title}')">🗑️ 删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 新闻统计
+    async function loadNewsStats() {
+      const { data } = await supabase
+        .from('news')
+        .select('id, status')
+        .eq('tenant_slug', TENANT_SLUG);
+      
+      document.getElementById('newsTotal').textContent = data?.length || 0;
+      document.getElementById('newsPublished').textContent = 
+        data?.filter(i => i.status === 'published').length || 0;
+    }
+
+    // 新闻列表
+    async function loadNewsList() {
+      const listDiv = document.getElementById('newsList');
+      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+      const { data, error } = await supabase
+        .from('news')
+        .select('*')
+        .eq('tenant_slug', TENANT_SLUG)
+        .order('published_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无动态</p>';
+        return;
+      }
+
+      listDiv.innerHTML = data.map(item => `
+        <div class="item">
+          <h3>
+            ${item.title}
+            <span class="badge ${item.status === 'published' ? 'badge-success' : 'badge-warning'}">
+              ${item.status === 'published' ? '✓ 已发布' : '📝 草稿'}
+            </span>
+          </h3>
+          <p>${(item.content || '').substring(0, 150)}...</p>
+          <div class="item-meta">
+            <span>📅 ${new Date(item.published_at).toLocaleString('zh-CN')}</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-danger" onclick="deleteNews('${item.id}', '${item.title}')">🗑️ 删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 提交知识库
+    document.getElementById('knowledgeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('kb_title').value;
+      const category = document.getElementById('kb_category').value;
+      const content = document.getElementById('kb_content').value;
+
+      try {
+        const { error } = await supabase
+          .from('knowledge_base')
+          .insert([{ tenant_slug: TENANT_SLUG, title, category, content, content_type: 'text' }]);
+
+        if (error) throw error;
+
+        // 生成向量
+        await supabase.functions.invoke('embed-backfill', {
+          body: { tenant_slug: TENANT_SLUG, limit: 50 }
+        });
+
+        showAdminAlert('✅ 知识库添加成功！', 'success');
+        document.getElementById('knowledgeForm').reset();
+        loadKnowledgeStats();
+        loadKnowledgeList();
+      } catch (error) {
+        showAdminAlert('❌ 添加失败: ' + error.message, 'error');
+      }
+    });
+
+    // 提交新闻（同时添加到知识库）
+    document.getElementById('newsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('news_title').value;
+      const content = document.getElementById('news_content').value;
+      const mediaType = document.getElementById('news_mediaType').value;
+      const mediaUrl = document.getElementById('news_mediaUrl').value;
+      const status = document.getElementById('news_status').value;
+      const addToKB = document.getElementById('news_addToKB').checked;
+
+      try {
+        // 1. 插入新闻
+        const { data: newsData, error: newsError } = await supabase
+          .from('news')
+          .insert([{
+            tenant_slug: TENANT_SLUG,
+            title,
+            content,
+            media_type: mediaType,
+            media_url: mediaUrl || null,
+            status
+          }])
+          .select();
+
+        if (newsError) throw newsError;
+
+        // 2. 如果勾选了"添加到知识库"
+        if (addToKB && status === 'published') {
+          await supabase
+            .from('knowledge_base')
+            .insert([{
+              tenant_slug: TENANT_SLUG,
+              title: title,
+              content: content,
+              category: '商会动态',
+              content_type: 'text',
+              source_url: mediaUrl || null
+            }]);
+
+          // 生成向量
+          await supabase.functions.invoke('embed-backfill', {
+            body: { tenant_slug: TENANT_SLUG, limit: 50 }
+          });
+        }
+
+        showAdminAlert('✅ 动态发布成功' + (addToKB ? '，已添加到知识库！' : '！'), 'success');
+        document.getElementById('newsForm').reset();
+        loadNewsStats();
+        loadNewsList();
+        if (addToKB) {
+          loadKnowledgeStats();
+          loadKnowledgeList();
+        }
+      } catch (error) {
+        showAdminAlert('❌ 发布失败: ' + error.message, 'error');
+      }
+    });
+
+    // 删除知识库
+    async function deleteKnowledge(id, title) {
+      if (!confirm(`确定删除"${title}"？`)) return;
+
+      const { error } = await supabase
+        .from('knowledge_base')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert('✅ 已删除', 'success');
+        loadKnowledgeStats();
+        loadKnowledgeList();
+      }
+    }
+
+    // 删除新闻
+    async function deleteNews(id, title) {
+      if (!confirm(`确定删除"${title}"？`)) return;
+
+      const { error } = await supabase
+        .from('news')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert('✅ 已删除', 'success');
+        loadNewsStats();
+        loadNewsList();
+      }
+    }
+
+    // 重新生成向量
+    async function regenerateEmbeddings() {
+      if (!confirm('确定重新生成所有向量吗？')) return;
+
+      try {
+        await supabase.functions.invoke('embed-backfill', {
+          body: { tenant_slug: TENANT_SLUG, limit: 100 }
+        });
+        showAdminAlert('✅ 向量生成成功！', 'success');
+        loadKnowledgeStats();
+      } catch (error) {
+        showAdminAlert('❌ 生成失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示提示
+    function showAdminAlert(message, type) {
+      document.getElementById('adminAlert').innerHTML = `
+        <div class="alert alert-${type}">${message}</div>
+      `;
+      setTimeout(() => {
+        document.getElementById('adminAlert').innerHTML = '';
+      }, 5000);
+    }
+
+    // 切换媒体URL显示
+    function toggleMediaUrl() {
+      const mediaType = document.getElementById('news_mediaType').value;
+      document.getElementById('mediaUrlGroup').style.display = 
+        (mediaType === 'image' || mediaType === 'video') ? 'block' : 'none';
+    }
+
+    // 页面加载时检查登录
+    checkAuth();
+
+    // ========================================
+    // 邀请码管理功能
+    // ========================================
+    
+    // 加载邀请码列表
+    async function loadInviteCodes() {
+      const listDiv = document.getElementById('inviteCodesList');
+      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+      try {
+        const { data, error } = await supabase
+          .from('invite_codes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无邀请码</p>';
+          return;
+        }
+
+        listDiv.innerHTML = data.map(item => {
+          const isExpired = item.expires_at && new Date(item.expires_at) < new Date();
+          const isExhausted = item.max_uses && item.used_count >= item.max_uses;
+          const isValid = item.is_active && !isExpired && !isExhausted;
+
+          return `
+            <div class="item">
+              <h3>
+                <code style="background:#f0f0f0;padding:5px 10px;border-radius:4px;font-size:16px;">${item.code}</code>
+                <span class="badge ${isValid ? 'badge-success' : 'badge-warning'}">
+                  ${isValid ? '✓ 有效' : '❌ 失效'}
+                </span>
+              </h3>
+              <p>${item.description || '无描述'}</p>
+              <div class="item-meta">
+                <span>📊 已使用: ${item.used_count}/${item.max_uses || '∞'}</span>
+                <span>⏰ ${item.expires_at ? '过期: ' + new Date(item.expires_at).toLocaleDateString('zh-CN') : '永久有效'}</span>
+                <span>📅 创建: ${new Date(item.created_at).toLocaleDateString('zh-CN')}</span>
+              </div>
+              <div class="actions">
+                <button class="btn btn-sm" onclick="copyInviteCode('${item.code}')">📋 复制</button>
+                <button class="btn btn-sm ${item.is_active ? 'btn-secondary' : 'btn-success'}" onclick="toggleInviteCode('${item.id}', ${!item.is_active})">
+                  ${item.is_active ? '🚫 禁用' : '✅ 启用'}
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteInviteCode('${item.id}', '${item.code}')">🗑️ 删除</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('加载邀请码失败:', error);
+        listDiv.innerHTML = '<p style="text-align:center;color:red;">加载失败</p>';
+      }
+    }
+
+    // 生成邀请码
+    async function generateInviteCode() {
+      const desc = document.getElementById('inviteDesc').value || '未命名';
+      const maxUses = parseInt(document.getElementById('inviteMaxUses').value) || 1;
+      const expireDays = parseInt(document.getElementById('inviteExpireDays').value) || 30;
+
+      try {
+        const { data, error } = await supabase
+          .rpc('generate_invite_code', {
+            p_description: desc,
+            p_max_uses: maxUses,
+            p_expires_days: expireDays
+          });
+
+        if (error) throw error;
+
+        showAdminAlert(`✅ 邀请码已生成: ${data}`, 'success');
+        
+        // 清空输入
+        document.getElementById('inviteDesc').value = '';
+        document.getElementById('inviteMaxUses').value = '1';
+        document.getElementById('inviteExpireDays').value = '30';
+        
+        // 刷新列表
+        loadInviteCodes();
+        
+        // 自动复制到剪贴板
+        navigator.clipboard.writeText(data).then(() => {
+          showAdminAlert(`✅ 邀请码已生成并复制: ${data}`, 'success');
+        });
+      } catch (error) {
+        showAdminAlert('❌ 生成失败: ' + error.message, 'error');
+      }
+    }
+
+    // 复制邀请码
+    function copyInviteCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showAdminAlert(`✅ 已复制: ${code}`, 'success');
+      });
+    }
+
+    // 切换邀请码状态
+    async function toggleInviteCode(id, newStatus) {
+      const { error } = await supabase
+        .from('invite_codes')
+        .update({ is_active: newStatus })
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert(`✅ ${newStatus ? '已启用' : '已禁用'}`, 'success');
+        loadInviteCodes();
+      }
+    }
+
+    // 删除邀请码
+    async function deleteInviteCode(id, code) {
+      if (!confirm(`确定删除邀请码 "${code}" 吗？`)) return;
+
+      const { error } = await supabase
+        .from('invite_codes')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert('✅ 已删除', 'success');
+        loadInviteCodes();
+      }
+    }
+  </script>
+</body>
+</html>

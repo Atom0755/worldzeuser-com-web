@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识库备份 - USCGCC</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .description {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      background: #667eea;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-success {
+      background: #28a745;
+    }
+    
+    .btn-success:hover {
+      background: #218838;
+    }
+    
+    .btn-info {
+      background: #17a2b8;
+    }
+    
+    .btn-info:hover {
+      background: #138496;
+    }
+    
+    .info-box {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .info-box h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .info-box p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 5px;
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .stat-card h3 {
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+    
+    .stat-card p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>
+        💾 知识库备份工具
+      </h1>
+      <p class="description">导出和备份您的 USCGCC 知识库数据</p>
+
+      <div id="alert"></div>
+
+      <!-- 统计信息 -->
+      <div class="stats">
+        <div class="stat-card">
+          <h3 id="totalCount">-</h3>
+          <p>总条目数</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="lastBackup">从未</h3>
+          <p>上次备份</p>
+        </div>
+      </div>
+
+      <!-- 备份按钮 -->
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="exportJSON()">
+          📄 导出为 JSON
+        </button>
+        <button class="btn btn-info" onclick="exportCSV()">
+          📊 导出为 CSV
+        </button>
+        <button class="btn" onclick="exportMarkdown()">
+          📝 导出为 Markdown
+        </button>
+      </div>
+
+      <!-- 说明 -->
+      <div class="info-box">
+        <h3>💡 备份说明</h3>
+        <p><strong>JSON 格式：</strong>包含完整数据，适合程序处理和恢复</p>
+        <p><strong>CSV 格式：</strong>可用 Excel 打开，适合查看和编辑</p>
+        <p><strong>Markdown 格式：</strong>人类可读，适合文档归档</p>
+      </div>
+    </div>
+
+    <!-- 预览区域 -->
+    <div class="card" id="previewCard" style="display:none;">
+      <h2>📋 数据预览</h2>
+      <pre id="preview"></pre>
+    </div>
+  </div>
+
+  <script>
+    // 初始化 Supabase
+    const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1MDMzOTYsImV4cCI6MjA1MjA3OTM5Nn0.2AwbeB0xIdHwNILQ3Fg9dPHCEm6QczRPCFMu_hKjqPk';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TENANT_SLUG = 'uscgcc';
+
+    // 显示提示信息
+    function showAlert(message, type = 'success') {
+      const alertDiv = document.getElementById('alert');
+      alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+      setTimeout(() => {
+        alertDiv.innerHTML = '';
+      }, 5000);
+    }
+
+    // 加载统计
+    async function loadStats() {
+      try {
+        const { data, error } = await supabase
+          .from('knowledge_base')
+          .select('id')
+          .eq('tenant_slug', TENANT_SLUG);
+
+        if (error) throw error;
+
+        document.getElementById('totalCount').textContent = data.length;
+        
+        // 检查本地存储的上次备份时间
+        const lastBackup = localStorage.getItem('lastBackup_uscgcc');
+        if (lastBackup) {
+          const date = new Date(lastBackup);
+          document.getElementById('lastBackup').textContent = date.toLocaleDateString('zh-CN');
+        }
+      } catch (error) {
+        console.error('加载统计失败:', error);
+      }
+    }
+
+    // 获取所有知识库数据
+    async function getAllData() {
+      try {
+        const { data, error } = await supabase
+          .from('knowledge_base')
+          .select('*')
+          .eq('tenant_slug', TENANT_SLUG)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('获取数据失败:', error);
+        showAlert('❌ 获取数据失败: ' + error.message, 'error');
+        return null;
+      }
+    }
+
+    // 下载文件
+    function downloadFile(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      // 记录备份时间
+      localStorage.setItem('lastBackup_uscgcc', new Date().toISOString());
+      loadStats();
+    }
+
+    // 导出为 JSON
+    async function exportJSON() {
+      const data = await getAllData();
+      if (!data) return;
+
+      // 清理 embedding 字段（太大）
+      const cleanData = data.map(item => ({
+        ...item,
+        embedding: item.embedding ? 'HAS_EMBEDDING' : null
+      }));
+
+      const json = JSON.stringify(cleanData, null, 2);
+      const filename = `uscgcc-knowledge-backup-${new Date().toISOString().split('T')[0]}.json`;
+      
+      downloadFile(json, filename, 'application/json');
+      showAlert('✅ JSON 文件已下载！', 'success');
+      
+      // 显示预览
+      document.getElementById('preview').textContent = json.substring(0, 500) + '...';
+      document.getElementById('previewCard').style.display = 'block';
+    }
+
+    // 导出为 CSV
+    async function exportCSV() {
+      const data = await getAllData();
+      if (!data) return;
+
+      // CSV 头部
+      const headers = ['ID', '标题', '分类', '内容', '创建时间', '有向量'];
+      let csv = headers.join(',') + '\n';
+
+      // CSV 数据
+      data.forEach(item => {
+        const row = [
+          item.id,
+          `"${(item.title || '').replace(/"/g, '""')}"`,
+          `"${(item.category || '').replace(/"/g, '""')}"`,
+          `"${(item.content || '').substring(0, 100).replace(/"/g, '""')}..."`,
+          item.created_at,
+          item.embedding ? '是' : '否'
+        ];
+        csv += row.join(',') + '\n';
+      });
+
+      const filename = `uscgcc-knowledge-backup-${new Date().toISOString().split('T')[0]}.csv`;
+      downloadFile('\uFEFF' + csv, filename, 'text/csv;charset=utf-8;');
+      showAlert('✅ CSV 文件已下载！可用 Excel 打开', 'success');
+    }
+
+    // 导出为 Markdown
+    async function exportMarkdown() {
+      const data = await getAllData();
+      if (!data) return;
+
+      let markdown = `# USCGCC 知识库备份\n\n`;
+      markdown += `备份时间：${new Date().toLocaleString('zh-CN')}\n`;
+      markdown += `总条目数：${data.length}\n\n`;
+      markdown += `---\n\n`;
+
+      data.forEach((item, index) => {
+        markdown += `## ${index + 1}. ${item.title || '无标题'}\n\n`;
+        markdown += `**分类：** ${item.category || '未分类'}\n\n`;
+        markdown += `**创建时间：** ${new Date(item.created_at).toLocaleString('zh-CN')}\n\n`;
+        markdown += `**内容：**\n\n${item.content || '无内容'}\n\n`;
+        markdown += `**向量状态：** ${item.embedding ? '✅ 已生成' : '❌ 未生成'}\n\n`;
+        markdown += `---\n\n`;
+      });
+
+      const filename = `uscgcc-knowledge-backup-${new Date().toISOString().split('T')[0]}.md`;
+      downloadFile(markdown, filename, 'text/markdown;charset=utf-8;');
+      showAlert('✅ Markdown 文件已下载！', 'success');
+    }
+
+    // 页面加载时初始化
+    window.addEventListener('load', () => {
+      loadStats();
+    });
+  </script>
+</body>
+</html>

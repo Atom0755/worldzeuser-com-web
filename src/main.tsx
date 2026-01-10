@@ -332,3 +332,213 @@ function initUSCGCCPage() {
     setTimeout(initChat, 500)
   }
 }
+
+// 在 main.tsx 或 uscgcc.tsx 中添加这段代码
+// 让点击 LOGO 弹出管理员登录框
+
+function initAdminLogin() {
+  // 找到 LOGO 元素
+  const logo = document.querySelector('.logo-img') || document.querySelector('img[alt*="logo"]');
+  
+  if (!logo) {
+    console.warn('未找到 LOGO 元素');
+    return;
+  }
+
+  // 添加点击事件
+  logo.style.cursor = 'pointer';
+  logo.title = '管理员登录';
+  
+  logo.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showLoginModal();
+  });
+}
+
+// 显示登录弹窗
+function showLoginModal() {
+  // 如果已经有弹窗，先移除
+  const existing = document.getElementById('adminLoginModal');
+  if (existing) {
+    existing.remove();
+  }
+
+  // 创建弹窗
+  const modal = document.createElement('div');
+  modal.id = 'adminLoginModal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+      position: relative;
+    ">
+      <button onclick="document.getElementById('adminLoginModal').remove()" style="
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+      ">×</button>
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="color: #333; margin-bottom: 10px;">🔐 管理员登录</h2>
+        <p style="color: #666; font-size: 14px;">USCGCC 内容管理系统</p>
+      </div>
+
+      <div id="loginModalAlert"></div>
+
+      <form id="adminLoginForm">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+            📧 邮箱
+          </label>
+          <input 
+            type="email" 
+            id="adminEmail" 
+            required 
+            placeholder="admin@uscgcc.org"
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+            🔒 密码
+          </label>
+          <input 
+            type="password" 
+            id="adminPassword" 
+            required 
+            placeholder="输入密码"
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+        </div>
+
+        <button 
+          type="submit" 
+          id="adminLoginBtn"
+          style="
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+          "
+        >
+          🚀 登录
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 15px;">
+        <a href="/admin-unified.html" style="color: #667eea; text-decoration: none; font-size: 14px; margin-right: 15px;">
+          📝 注册新账号
+        </a>
+        <a href="/admin-unified.html" style="color: #667eea; text-decoration: none; font-size: 14px;">
+          🔑 忘记密码？
+        </a>
+      </div>
+
+      <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+        如需帮助，请联系系统管理员
+      </p>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // 点击背景关闭
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // 处理登录
+  document.getElementById('adminLoginForm').addEventListener('submit', handleAdminLogin);
+}
+
+// 处理管理员登录
+async function handleAdminLogin(e) {
+  e.preventDefault();
+
+  const btn = document.getElementById('adminLoginBtn');
+  const alertDiv = document.getElementById('loginModalAlert');
+  
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+
+  const email = document.getElementById('adminEmail').value;
+  const password = document.getElementById('adminPassword').value;
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) throw error;
+
+    // 登录成功，跳转到管理后台
+    alertDiv.innerHTML = `
+      <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
+        ✅ 登录成功！正在跳转...
+      </div>
+    `;
+
+    setTimeout(() => {
+      // 跳转到统一管理后台
+      window.location.href = '/admin-unified.html';
+    }, 1000);
+
+  } catch (error) {
+    alertDiv.innerHTML = `
+      <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
+        ❌ ${error.message}
+      </div>
+    `;
+    console.error('登录失败:', error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 登录';
+  }
+}
+
+// 在页面加载时初始化
+window.addEventListener('load', initAdminLogin);
