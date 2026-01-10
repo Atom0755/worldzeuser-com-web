@@ -21,9 +21,6 @@ if (root) {
     requestAnimationFrame(() => {
       initUSCGCCPage();
     });
-  }
-    // 初始化 USCGCC 页面的交互逻辑
-    initUSCGCCPage()
   } else if (hostname.startsWith('usclgcc.') || pathname.startsWith('/a/usclgcc')) {
     root.innerHTML = USCLGCCPage
   } else if (hostname.startsWith('ilausa.') || pathname.startsWith('/a/ilausa')) {
@@ -140,18 +137,18 @@ if (root) {
 
       // 监听认证状态变化
       // 监听登录状态，一旦登录成功，自动隐藏遮罩并允许提问
-supabase.auth.onAuthStateChange((event: string, session: any) => {
-  console.log('身份状态变化:', event);
-  if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-    isAuthenticated = true;
-    if (authOverlay) {
-      authOverlay.style.transition = 'opacity 0.5s';
-      authOverlay.style.opacity = '0';
-      setTimeout(() => authOverlay.style.display = 'none', 500);
-    }
-    addMessage("验证成功！我是您的 AI 助手，现在您可以结合知识库向我提问了。", false);
-  }
-});
+      supabase.auth.onAuthStateChange((event: string, session: any) => {
+        console.log('身份状态变化:', event);
+        if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+          isAuthenticated = true;
+          if (authOverlay) {
+            authOverlay.style.transition = 'opacity 0.5s';
+            authOverlay.style.opacity = '0';
+            setTimeout(() => authOverlay.style.display = 'none', 500);
+          }
+          addMessage("验证成功！我是您的 AI 助手，现在您可以结合知识库向我提问了。", false);
+        }
+      });
 
       // 添加消息到聊天框
       function addMessage(text: string, isUser = false) {
@@ -304,55 +301,33 @@ supabase.auth.onAuthStateChange((event: string, session: any) => {
         });
       }
 
-      // 邮箱验证
-      // 邮箱验证逻辑修复
-if (verifyBtn && emailInput) {
-  console.log('✅ 验证按钮已就绪');
-  
-  // 移除旧的监听器（防止重复绑定）并添加新的
-  verifyBtn.onclick = async (e) => {
-    e.preventDefault(); // 防止表单默认提交
-    console.log('🚀 确认按钮被点击了');
-    
-    const email = (emailInput as HTMLInputElement).value.trim();
-    if (!email || !email.includes('@')) {
-      alert('请输入有效的电子邮箱地址');
-      return;
-    }
+      // ✅ 修复后的邮箱验证逻辑
+      if (verifyBtn && emailInput) {
+        console.log('✅ 验证按钮已就绪');
+        
+        // 使用 onclick 而不是 addEventListener，避免重复绑定
+        verifyBtn.onclick = async (e) => {
+          e.preventDefault(); // 防止表单默认提交
+          console.log('🚀 确认按钮被点击了');
+          
+          const email = (emailInput as HTMLInputElement).value.trim();
+          if (!email || !email.includes('@')) {
+            alert('请输入有效的电子邮箱地址');
+            return;
+          }
 
-    verifyBtn.textContent = '发送中...';
-    (verifyBtn as HTMLButtonElement).disabled = true;
-
-    try {
-      // 1. 发送 OTP 邮件
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          // 确保这个 URL 在 Supabase 后台的 Redirect URLs 列表里
-          emailRedirectTo: window.location.origin + window.location.pathname,
-        }
-      });
-
-      if (error) throw error;
-      
-      alert('验证链接已发送！请检查您的邮箱（包括垃圾邮件）。点击链接后即可解锁 AI。');
-      verifyBtn.textContent = '验证中...';
-
-    } catch (err: any) {
-      console.error('发送失败:', err);
-      alert('发送失败: ' + (err.message || '未知错误'));
-      verifyBtn.textContent = '点击确认';
-      (verifyBtn as HTMLButtonElement).disabled = false;
-    }
-  };
-}
+          verifyBtn.textContent = '发送中...';
+          (verifyBtn as HTMLButtonElement).disabled = true;
 
           try {
-            console.log('开始发送验证邮件...');
+            console.log('开始发送验证邮件到:', email);
+            
+            // 发送 OTP 邮件
             const { data, error } = await supabase.auth.signInWithOtp({
               email: email,
               options: {
-                emailRedirectTo: window.location.origin + window.location.pathname
+                // 确保这个 URL 在 Supabase 后台的 Redirect URLs 列表里
+                emailRedirectTo: window.location.origin + window.location.pathname,
               }
             });
 
@@ -364,15 +339,16 @@ if (verifyBtn && emailInput) {
             console.log('验证邮件发送成功:', data);
             alert('验证链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。');
             verifyBtn.textContent = '已发送';
+            
           } catch (err: any) {
             console.error('发送失败:', err);
-            alert('发送失败: ' + (err.message || '未知错误') + '\n请检查控制台获取详细信息。');
+            alert('发送失败: ' + (err.message || '未知错误') + '\n请检查您的邮箱格式是否正确。');
             verifyBtn.textContent = '点击确认';
             (verifyBtn as HTMLButtonElement).disabled = false;
           }
-        });
+        };
       } else {
-        console.error('邮箱验证按钮或输入框未找到', { verifyBtn, emailInput });
+        console.error('❌ 邮箱验证按钮或输入框未找到', { verifyBtn, emailInput });
       }
     }
     
