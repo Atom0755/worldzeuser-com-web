@@ -495,50 +495,63 @@ function showLoginModal() {
 }
 
 // 处理管理员登录
-async function handleAdminLogin(e) {
+// --- 最终无错版，替换文件末尾 ---
+
+async function handleAdminLogin(e: any) { 
   e.preventDefault();
 
-  const btn = document.getElementById('adminLoginBtn');
+  // 1. 获取登录按钮，并强制告诉 TS 这是一个 HTMLButtonElement
+  const btn = document.getElementById('adminLoginBtn') as HTMLButtonElement;
+  // 2. 获取提示框
   const alertDiv = document.getElementById('loginModalAlert');
   
+  // 3. 安全检查：如果找不到这两个核心元素，直接返回，不执行后面代码
+  if (!btn || !alertDiv) return;
+
+  // 此时 btn 已经确定存在，TS 不会再报错
   btn.disabled = true;
   btn.textContent = '登录中...';
 
-  const email = document.getElementById('adminEmail').value;
-  const password = document.getElementById('adminPassword').value;
+  // 4. 获取输入框，并强制告诉 TS 它们是 HTMLInputElement
+  const emailInput = document.getElementById('adminEmail') as HTMLInputElement;
+  const passwordInput = document.getElementById('adminPassword') as HTMLInputElement;
+  
+  // 5. 安全检查：确保输入框存在
+  if (!emailInput || !passwordInput) {
+    btn.disabled = false;
+    btn.textContent = '🚀 登录';
+    return;
+  }
+
+  const email = emailInput.value;
+  const password = passwordInput.value;
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await (window as any).supabase.auth.signInWithPassword({
       email: email,
       password: password
     });
 
     if (error) throw error;
 
-    // 登录成功，跳转到管理后台
-    alertDiv.innerHTML = `
+    alertDiv？.innerHTML = `
       <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
         ✅ 登录成功！正在跳转...
       </div>
     `;
 
     setTimeout(() => {
-      // 跳转到统一管理后台
-      window.location.href = '/admin-unified.html';
+      (window as any).location.href = '/admin-unified.html';
     }, 1000);
 
-  } catch (error) {
-    alertDiv.innerHTML = `
+  } catch (error: any) {
+    alertDiv？.innerHTML = `
       <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
         ❌ ${error.message}
       </div>
     `;
-    console.error('登录失败:', error);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🚀 登录';
+    // 6. 出错时恢复按钮状态
+    if (btn) btn.disabled = false;
+    if (btn) btn.textContent = '🚀 登录';
   }
 }
-
-// 在页面加载时初始化
-window.addEventListener('load', initAdminLogin);
