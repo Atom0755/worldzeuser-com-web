@@ -208,7 +208,7 @@ function initUSCGCCPage() {
           body: {
             tenant_slug: 'uscgcc',
             question: finalQuestion,
-            match_threshold: 0.75,
+            match_threshold: 0.5,
             match_count: 5
           }
         })
