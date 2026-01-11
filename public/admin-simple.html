@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USCGCC 管理后台</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    /* 登录页面 */
+    #loginPage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 15px;
+    }
+
+    .logo h2 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .logo p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      min-height: 150px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .btn {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #5568d3;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 14px;
+      width: auto;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    /* 管理后台 */
+    #adminPage {
+      display: none;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-email {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .btn-logout {
+      background: #dc3545;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-logout:hover {
+      background: #c82333;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      background: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+
+    .stat-card p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .item-list {
+      margin-top: 20px;
+    }
+
+    .item {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s;
+    }
+
+    .item:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .item h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .item p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .item-meta {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div id="loginPage">
+    <div class="login-card">
+      <div class="logo">
+        <img src="https://uscgcc.worldzeuser.com/logo.png" alt="USCGCC Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23667eea%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2240%22 font-weight=%22bold%22%3ELOGO%3C/text%3E%3C/svg%3E'">
+        <h2>USCGCC 管理后台</h2>
+        <p>美国粤商会内容管理系统</p>
+      </div>
+
+      <div id="loginAlert"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">📧 管理员邮箱</label>
+          <input type="email" id="email" required placeholder="admin@uscgcc.org">
+        </div>
+
+        <div class="form-group">
+          <label for="password">🔒 密码</label>
+          <input type="password" id="password" required placeholder="输入密码">
+        </div>
+
+        <button type="submit" class="btn" id="loginBtn">🔐 登录</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 管理后台页面 -->
+  <div id="adminPage">
+    <div class="container">
+      <!-- 顶部导航 -->
+      <div class="header">
+        <h1>📊 USCGCC 管理后台</h1>
+        <div class="user-info">
+          <span class="user-email" id="userEmail"></span>
+          <button class="btn-logout" onclick="logout()">🚪 退出</button>
+        </div>
+      </div>
+
+      <div id="adminAlert"></div>
+
+      <!-- 标签页 -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('knowledge')">📚 知识库管理</div>
+        <div class="tab" onclick="switchTab('news')">📰 动态新闻</div>
+      </div>
+
+      <!-- 知识库管理 -->
+      <div id="knowledgeTab" class="tab-content active">
+        <div class="stats">
+          <div class="stat-card">
+            <h3 id="kbTotal">-</h3>
+            <p>知识库条目</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="kbWithEmbedding">-</h3>
+            <p>已生成向量</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>➕ 添加知识库内容</h2>
+          <form id="knowledgeForm">
+            <div class="form-group">
+              <label>标题 *</label>
+              <input type="text" id="kb_title" required placeholder="例如：商会简介">
+            </div>
+
+            <div class="form-group">
+              <label>分类 *</label>
+              <select id="kb_category">
+                <option value="商会简介">商会简介</option>
+                <option value="总会长简介">总会长简介</option>
+                <option value="秘书长简介">秘书长简介</option>
+                <option value="入会指南">入会指南</option>
+                <option value="创始单位">创始单位</option>
+                <option value="联系我们">联系我们</option>
+                <option value="商会动态">商会动态</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>内容 *</label>
+              <textarea id="kb_content" required placeholder="输入内容..."></textarea>
+            </div>
+
+            <button type="submit" class="btn">💾 保存并生成向量</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>📋 现有知识库</h2>
+          <div id="knowledgeList" class="item-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 动态新闻管理 -->
+      <div id="newsTab" class="tab-content">
+        <div class="stats">
+          <div class="stat-card">
+            <h3 id="newsTotal">-</h3>
+            <p>总动态数</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="newsPublished">-</h3>
+            <p>已发布</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>➕ 发布新动态</h2>
+          <form id="newsForm">
+            <div class="form-group">
+              <label>标题 *</label>
+              <input type="text" id="news_title" required placeholder="例如：2024 美中经贸交流会成功举办">
+            </div>
+
+            <div class="form-group">
+              <label>内容 *</label>
+              <textarea id="news_content" required placeholder="输入动态内容..."></textarea>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>媒体类型</label>
+                <select id="news_mediaType" onchange="toggleMediaUrl()">
+                  <option value="text">纯文字</option>
+                  <option value="image">图片</option>
+                  <option value="video">视频</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>状态</label>
+                <select id="news_status">
+                  <option value="published">立即发布</option>
+                  <option value="draft">保存为草稿</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" id="mediaUrlGroup" style="display:none;">
+              <label>媒体链接</label>
+              <input type="text" id="news_mediaUrl" placeholder="图片或视频的URL">
+            </div>
+
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="news_addToKB" checked>
+                <span>同时添加到知识库（AI可引用此动态）</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn">📢 发布动态</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>📋 已发布动态</h2>
+          <div id="newsList" class="item-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化 Supabase
+    const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1MDMzOTYsImV4cCI6MjA1MjA3OTM5Nn0.2AwbeB0xIdHwNILQ3Fg9dPHCEm6QczRPCFMu_hKjqPk';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TENANT_SLUG = 'uscgcc';
+
+    // 检查登录状态
+    async function checkAuth() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        showAdminPage(session.user);
+      }
+    }
+
+    // 登录
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      document.getElementById('loginAlert').innerHTML = '';
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+        if (error) throw error;
+        showAdminPage(data.user);
+      } catch (error) {
+        let errorMessage = error.message;
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = '邮箱或密码错误，请重试';
+        }
+        document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">❌ ${errorMessage}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 登录';
+      }
+    });
+
+    // 显示管理页面
+    function showAdminPage(user) {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('adminPage').style.display = 'block';
+      document.getElementById('userEmail').textContent = user.email;
+      loadAllData();
+    }
+
+    // 退出登录
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      location.reload();
+    }
+
+    // 切换标签页
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tab + 'Tab').classList.add('active');
+    }
+
+    // 加载所有数据
+    async function loadAllData() {
+      loadKnowledgeStats();
+      loadKnowledgeList();
+      loadNewsStats();
+      loadNewsList();
+    }
+
+    // 知识库统计
+    async function loadKnowledgeStats() {
+      const { data } = await supabaseClient
+        .from('knowledge_base')
+        .select('id, embedding')
+        .eq('tenant_slug', TENANT_SLUG);
+      
+      document.getElementById('kbTotal').textContent = data?.length || 0;
+      document.getElementById('kbWithEmbedding').textContent = 
+        data?.filter(i => i.embedding).length || 0;
+    }
+
+    // 知识库列表
+    async function loadKnowledgeList() {
+      const listDiv = document.getElementById('knowledgeList');
+      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+      const { data, error } = await supabaseClient
+        .from('knowledge_base')
+        .select('*')
+        .eq('tenant_slug', TENANT_SLUG)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无知识库内容</p>';
+        return;
+      }
+
+      listDiv.innerHTML = data.map(item => `
+        <div class="item">
+          <h3>
+            ${escapeHtml(item.title)}
+            <span class="badge badge-success">${escapeHtml(item.category || '未分类')}</span>
+            ${item.embedding ? '<span class="badge badge-success">✓ 已生成向量</span>' : ''}
+          </h3>
+          <p>${escapeHtml((item.content || '').substring(0, 150))}...</p>
+          <div class="item-meta">
+            <span>📅 ${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-danger" onclick="deleteKnowledge('${item.id}', '${escapeHtml(item.title)}')">🗑️ 删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 新闻统计
+    async function loadNewsStats() {
+      const { data } = await supabaseClient
+        .from('news')
+        .select('id, status')
+        .eq('tenant_slug', TENANT_SLUG);
+      
+      document.getElementById('newsTotal').textContent = data?.length || 0;
+      document.getElementById('newsPublished').textContent = 
+        data?.filter(i => i.status === 'published').length || 0;
+    }
+
+    // 新闻列表
+    async function loadNewsList() {
+      const listDiv = document.getElementById('newsList');
+      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+      const { data, error } = await supabaseClient
+        .from('news')
+        .select('*')
+        .eq('tenant_slug', TENANT_SLUG)
+        .order('published_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无动态内容</p>';
+        return;
+      }
+
+      listDiv.innerHTML = data.map(item => `
+        <div class="item">
+          <h3>
+            ${escapeHtml(item.title)}
+            <span class="badge ${item.status === 'published' ? 'badge-success' : 'badge-warning'}">
+              ${item.status === 'published' ? '✓ 已发布' : '📝 草稿'}
+            </span>
+          </h3>
+          <p>${escapeHtml((item.content || '').substring(0, 150))}...</p>
+          <div class="item-meta">
+            <span>📅 ${new Date(item.published_at || item.created_at).toLocaleString('zh-CN')}</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-danger" onclick="deleteNews('${item.id}', '${escapeHtml(item.title)}')">🗑️ 删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 提交知识库
+    document.getElementById('knowledgeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('kb_title').value;
+      const category = document.getElementById('kb_category').value;
+      const content = document.getElementById('kb_content').value;
+
+      try {
+        const { error } = await supabaseClient
+          .from('knowledge_base')
+          .insert([{ tenant_slug: TENANT_SLUG, title, category, content, content_type: 'text' }]);
+
+        if (error) throw error;
+
+        // 生成向量
+        await supabaseClient.functions.invoke('embed-backfill', {
+          body: { tenant_slug: TENANT_SLUG, limit: 50 }
+        });
+
+        showAdminAlert('✅ 知识库添加成功！', 'success');
+        document.getElementById('knowledgeForm').reset();
+        loadKnowledgeStats();
+        loadKnowledgeList();
+      } catch (error) {
+        showAdminAlert('❌ 添加失败: ' + error.message, 'error');
+      }
+    });
+
+    // 提交新闻
+    document.getElementById('newsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('news_title').value;
+      const content = document.getElementById('news_content').value;
+      const mediaType = document.getElementById('news_mediaType').value;
+      const mediaUrl = document.getElementById('news_mediaUrl').value;
+      const status = document.getElementById('news_status').value;
+      const addToKB = document.getElementById('news_addToKB').checked;
+
+      try {
+        // 1. 插入新闻
+        const { error: newsError } = await supabaseClient
+          .from('news')
+          .insert([{
+            tenant_slug: TENANT_SLUG,
+            title,
+            content,
+            media_type: mediaType,
+            media_url: mediaUrl || null,
+            status,
+            published_at: status === 'published' ? new Date().toISOString() : null
+          }]);
+
+        if (newsError) throw newsError;
+
+        // 2. 如果勾选了"添加到知识库"且状态为已发布
+        if (addToKB && status === 'published') {
+          await supabaseClient
+            .from('knowledge_base')
+            .insert([{
+              tenant_slug: TENANT_SLUG,
+              title: title,
+              content: content,
+              category: '商会动态',
+              content_type: 'text',
+              source_url: mediaUrl || null
+            }]);
+
+          // 生成向量
+          await supabaseClient.functions.invoke('embed-backfill', {
+            body: { tenant_slug: TENANT_SLUG, limit: 50 }
+          });
+        }
+
+        showAdminAlert('✅ 动态发布成功' + (addToKB && status === 'published' ? '，已添加到知识库！' : '！'), 'success');
+        document.getElementById('newsForm').reset();
+        document.getElementById('news_addToKB').checked = true; // 重置为默认勾选
+        loadNewsStats();
+        loadNewsList();
+        if (addToKB && status === 'published') {
+          loadKnowledgeStats();
+          loadKnowledgeList();
+        }
+      } catch (error) {
+        showAdminAlert('❌ 发布失败: ' + error.message, 'error');
+      }
+    });
+
+    // 删除知识库
+    async function deleteKnowledge(id, title) {
+      if (!confirm(`确定删除"${title}"吗？`)) return;
+
+      const { error } = await supabaseClient
+        .from('knowledge_base')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert('✅ 已删除', 'success');
+        loadKnowledgeStats();
+        loadKnowledgeList();
+      } else {
+        showAdminAlert('❌ 删除失败', 'error');
+      }
+    }
+
+    // 删除新闻
+    async function deleteNews(id, title) {
+      if (!confirm(`确定删除"${title}"吗？`)) return;
+
+      const { error } = await supabaseClient
+        .from('news')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        showAdminAlert('✅ 已删除', 'success');
+        loadNewsStats();
+        loadNewsList();
+      } else {
+        showAdminAlert('❌ 删除失败', 'error');
+      }
+    }
+
+    // 显示提示
+    function showAdminAlert(message, type) {
+      document.getElementById('adminAlert').innerHTML = `
+        <div class="alert alert-${type}">${message}</div>
+      `;
+      setTimeout(() => {
+        document.getElementById('adminAlert').innerHTML = '';
+      }, 5000);
+    }
+
+    // 切换媒体URL显示
+    function toggleMediaUrl() {
+      const mediaType = document.getElementById('news_mediaType').value;
+      document.getElementById('mediaUrlGroup').style.display = 
+        (mediaType === 'image' || mediaType === 'video') ? 'block' : 'none';
+    }
+
+    // HTML转义
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 页面加载时检查登录
+    checkAuth();
+  </script>
+</body>
+</html>
