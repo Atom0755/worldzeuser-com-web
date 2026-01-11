@@ -681,6 +681,8 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1MDMzOTYsImV4cCI6MjA1MjA3OTM5Nn0.2AwbeB0xIdHwNILQ3Fg9dPHCEm6QczRPCFMu_hKjqPk';
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
     const TENANT_SLUG = 'uscgcc';
 
     // 检查登录状态
@@ -742,7 +744,8 @@
 
         if (error) throw error;
 
-        showAdminPage(data.user);
+         // 登录成功后跳转到 admin-simple.html
+    window.location.href = '/admin-simple.html';
       } catch (error) {
         let errorMessage = error.message;
         
