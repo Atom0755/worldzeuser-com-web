@@ -16,13 +16,12 @@ if (root) {
 
   if (hostname.startsWith('uscgcc.') || pathname.startsWith('/a/uscgcc')) {
     root.innerHTML = USCGCCPage
-    // 修改 main.tsx 中的逻辑
-requestAnimationFrame(() => {
-  initUSCGCCPage();
-  setTimeout(() => {
-      initAdminLogin(); // 延迟一丁点时间执行，确保 DOM 节点已存在
-  }, 100);
-});
+    requestAnimationFrame(() => {
+      initUSCGCCPage();
+      setTimeout(() => {
+        initAdminLogin();
+      }, 100);
+    });
   } else if (hostname.startsWith('usclgcc.') || pathname.startsWith('/a/usclgcc')) {
     root.innerHTML = USCLGCCPage
   } else if (hostname.startsWith('ilausa.') || pathname.startsWith('/a/ilausa')) {
@@ -337,11 +336,11 @@ function initUSCGCCPage() {
   }
 }
 
-// 在 main.tsx 或 uscgcc.tsx 中添加这段代码
-// 让点击 LOGO 弹出管理员登录框
+// ============================================
+// 点击 LOGO 弹出管理员登录框
+// ============================================
 
 function initAdminLogin() {
-  // 找到 LOGO 元素
   const logo = document.querySelector('.logo-img') || document.querySelector('img[alt*="logo"]');
   
   if (!logo) {
@@ -349,7 +348,6 @@ function initAdminLogin() {
     return;
   }
 
-  // 添加点击事件
   if (logo) {
     const logoBtn = logo as HTMLElement;
     logoBtn.style.cursor = 'pointer';
@@ -364,13 +362,11 @@ function initAdminLogin() {
 
 // 显示登录弹窗
 function showLoginModal() {
-  // 如果已经有弹窗，先移除
   const existing = document.getElementById('adminLoginModal');
   if (existing) {
     existing.remove();
   }
 
-  // 创建弹窗
   const modal = document.createElement('div');
   modal.id = 'adminLoginModal';
   modal.style.cssText = `
@@ -474,10 +470,7 @@ function showLoginModal() {
       </form>
 
       <div style="text-align: center; margin-top: 15px;">
-        <a href="/admin-unified.html" style="color: #667eea; text-decoration: none; font-size: 14px; margin-right: 15px;">
-          📝 注册新账号
-        </a>
-        <a href="/admin-unified.html" style="color: #667eea; text-decoration: none; font-size: 14px;">
+        <a href="#" onclick="showForgotPassword(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
           🔑 忘记密码？
         </a>
       </div>
@@ -490,43 +483,36 @@ function showLoginModal() {
 
   document.body.appendChild(modal);
 
-  // 点击背景关闭
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.remove();
     }
   });
 
-  // 处理登录
   const loginForm = document.getElementById('adminLoginForm');
   if (loginForm) {
     loginForm.addEventListener('submit', handleAdminLogin);
   }
 }
 
-// 处理管理员登录
-// --- 最终无错版，替换文件末尾 ---
+// ============================================
+// 处理管理员登录 - 跳转到 admin-simple.html
+// ============================================
 
 async function handleAdminLogin(e: any) { 
   e.preventDefault();
 
-  // 1. 获取登录按钮，并强制告诉 TS 这是一个 HTMLButtonElement
   const btn = document.getElementById('adminLoginBtn') as HTMLButtonElement;
-  // 2. 获取提示框
   const alertDiv = document.getElementById('loginModalAlert');
   
-  // 3. 安全检查：如果找不到这两个核心元素，直接返回，不执行后面代码
   if (!btn || !alertDiv) return;
 
-  // 此时 btn 已经确定存在，TS 不会再报错
   btn.disabled = true;
   btn.textContent = '登录中...';
 
-  // 4. 获取输入框，并强制告诉 TS 它们是 HTMLInputElement
   const emailInput = document.getElementById('adminEmail') as HTMLInputElement;
   const passwordInput = document.getElementById('adminPassword') as HTMLInputElement;
   
-  // 5. 安全检查：确保输入框存在
   if (!emailInput || !passwordInput) {
     btn.disabled = false;
     btn.textContent = '🚀 登录';
@@ -552,8 +538,9 @@ async function handleAdminLogin(e: any) {
       `;
     }
 
+    // 🎯 登录成功后直接跳转到 admin-simple.html
     setTimeout(() => {
-      (window as any).location.href = '/admin-unified.html';
+      window.location.href = '/admin-simple.html';
     }, 1000);
 
   } catch (error: any) {
@@ -564,8 +551,200 @@ async function handleAdminLogin(e: any) {
         </div>
       `;
     }
-    // 6. 出错时恢复按钮状态
     if (btn) btn.disabled = false;
     if (btn) btn.textContent = '🚀 登录';
+  }
+}
+
+// ============================================
+// 🔑 忘记密码功能 - 自助重置密码
+// ============================================
+
+function showForgotPassword() {
+  // 创建忘记密码弹窗
+  const existing = document.getElementById('forgotPasswordModal');
+  if (existing) {
+    existing.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'forgotPasswordModal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    padding: 20px;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+      position: relative;
+    ">
+      <button onclick="document.getElementById('forgotPasswordModal').remove()" style="
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+      ">×</button>
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <div style="font-size: 48px; margin-bottom: 15px;">🔑</div>
+        <h2 style="color: #333; margin-bottom: 10px;">重置密码</h2>
+        <p style="color: #666; font-size: 14px;">我们将发送密码重置链接到您的邮箱</p>
+      </div>
+
+      <div id="forgotPasswordAlert"></div>
+
+      <form id="forgotPasswordForm">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+            📧 管理员邮箱
+          </label>
+          <input 
+            type="email" 
+            id="resetEmail" 
+            required 
+            placeholder="输入您的管理员邮箱"
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+        </div>
+
+        <button 
+          type="submit" 
+          id="resetPasswordBtn"
+          style="
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+          "
+        >
+          📧 发送重置链接
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 15px;">
+        <a href="#" onclick="document.getElementById('forgotPasswordModal').remove(); showLoginModal(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+          ← 返回登录
+        </a>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <p style="font-size: 12px; color: #666; line-height: 1.6; margin: 0;">
+          💡 提示：点击发送后，请检查您的邮箱（包括垃圾邮件文件夹）。点击邮件中的链接即可设置新密码。
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', handleForgotPassword);
+  }
+}
+
+// 处理忘记密码请求
+async function handleForgotPassword(e: any) {
+  e.preventDefault();
+
+  const btn = document.getElementById('resetPasswordBtn') as HTMLButtonElement;
+  const alertDiv = document.getElementById('forgotPasswordAlert');
+  
+  if (!btn || !alertDiv) return;
+
+  btn.disabled = true;
+  btn.textContent = '发送中...';
+  alertDiv.innerHTML = '';
+
+  const emailInput = document.getElementById('resetEmail') as HTMLInputElement;
+  
+  if (!emailInput) {
+    btn.disabled = false;
+    btn.textContent = '📧 发送重置链接';
+    return;
+  }
+
+  const email = emailInput.value.trim();
+
+  if (!email || !email.includes('@')) {
+    alertDiv.innerHTML = `
+      <div style="padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; margin-bottom: 20px;">
+        ⚠️ 请输入有效的邮箱地址
+      </div>
+    `;
+    btn.disabled = false;
+    btn.textContent = '📧 发送重置链接';
+    return;
+  }
+
+  try {
+    const { error } = await (window as any).supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/admin-simple.html'
+    });
+
+    if (error) throw error;
+
+    alertDiv.innerHTML = `
+      <div style="padding: 15px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">✅ 重置邮件已发送！</div>
+        <div style="font-size: 13px; line-height: 1.6;">
+          我们已向 <strong>${email}</strong> 发送了密码重置链接。<br><br>
+          请检查您的邮箱（包括垃圾邮件文件夹），点击邮件中的链接设置新密码。
+        </div>
+      </div>
+    `;
+
+    btn.textContent = '✅ 已发送';
+    
+    // 5秒后自动关闭弹窗
+    setTimeout(() => {
+      const modal = document.getElementById('forgotPasswordModal');
+      if (modal) modal.remove();
+    }, 5000);
+
+  } catch (error: any) {
+    alertDiv.innerHTML = `
+      <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
+        ❌ 发送失败：${error.message || '请稍后重试'}
+      </div>
+    `;
+    btn.disabled = false;
+    btn.textContent = '📧 发送重置链接';
   }
 }
