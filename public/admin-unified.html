@@ -632,46 +632,46 @@
         </div>
       </div>
 
-      <!-- 系统设置 -->
-      <div id="settingsTab" class="tab-content">
-        <div class="card">
-          <h2>🎫 邀请码管理</h2>
-          <p style="color:#666;margin-bottom:20px;">生成和管理注册邀请码，控制谁可以注册管理员账号</p>
+     <!-- 系统设置 -->
+     <div id="settingsTab" class="tab-content">
+      <div class="card">
+        <h2>🎫 邀请码管理</h2>
+        <p style="color:#666;margin-bottom:20px;">生成和管理注册邀请码，控制谁可以注册管理员账号</p>
 
-          <div class="form-group">
-            <label>生成新邀请码</label>
-            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;align-items:end;">
-              <div>
-                <input type="text" id="inviteDesc" placeholder="描述（如：新管理员）" style="width:100%;">
-              </div>
-              <div>
-                <input type="number" id="inviteMaxUses" value="1" min="1" placeholder="可用次数" style="width:100%;">
-              </div>
-              <div>
-                <input type="number" id="inviteExpireDays" value="30" min="1" placeholder="有效天数" style="width:100%;">
-              </div>
-              <button class="btn" onclick="generateInviteCode()" style="margin:0;">🎫 生成</button>
+        <div class="form-group">
+          <label>生成新邀请码</label>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;align-items:end;">
+            <div>
+              <input type="text" id="inviteDesc" placeholder="描述（如：新管理员）" style="width:100%;">
             </div>
-          </div>
-
-          <div id="inviteCodesList" style="margin-top:20px;">
-            <div class="loading">加载中...</div>
+            <div>
+              <input type="number" id="inviteMaxUses" value="1" min="1" placeholder="可用次数" style="width:100%;">
+            </div>
+            <div>
+              <input type="number" id="inviteExpireDays" value="30" min="1" placeholder="有效天数" style="width:100%;">
+            </div>
+            <button class="btn" onclick="generateInviteCode()" style="margin:0;">🎫 生成</button>
           </div>
         </div>
 
-        <div class="card">
-          <h2>⚙️ 系统信息</h2>
-          <p><strong>租户：</strong> uscgcc</p>
-          <p><strong>版本：</strong> v1.0.0</p>
-          <p><strong>AI 模型：</strong> gpt-4o-mini</p>
-          <p><strong>向量维度：</strong> 1536</p>
-        </div>
-
-        <div class="card">
-          <h2>🔧 维护工具</h2>
-          <button class="btn" onclick="regenerateEmbeddings()">🔄 重新生成所有向量</button>
+        <div id="inviteCodesList" style="margin-top:20px;">
+          <div class="loading">加载中...</div>
         </div>
       </div>
+
+      <div class="card">
+        <h2>⚙️ 系统信息</h2>
+        <p><strong>租户：</strong> uscgcc</p>
+        <p><strong>版本：</strong> v1.0.0</p>
+        <p><strong>AI 模型：</strong> gpt-4o-mini</p>
+        <p><strong>向量维度：</strong> 1536</p>
+      </div>
+
+      <div class="card">
+        <h2>🔧 维护工具</h2>
+        <button class="btn" onclick="regenerateEmbeddings()">🔄 重新生成所有向量</button>
+      </div>
+    </div>
     </div>
   </div>
 
