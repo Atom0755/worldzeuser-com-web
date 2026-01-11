@@ -16,13 +16,13 @@ if (root) {
 
   if (hostname.startsWith('uscgcc.') || pathname.startsWith('/a/uscgcc')) {
     root.innerHTML = USCGCCPage
-    requestAnimationFrame(() => {
-      initUSCGCCPage()
-      requestAnimationFrame(() => {
-        initUSCGCCPage()
-        initAdminLogin() // <--- 必须增加这一行，否则点击 Logo 没反应
-      })
-    })
+    // 修改 main.tsx 中的逻辑
+requestAnimationFrame(() => {
+  initUSCGCCPage();
+  setTimeout(() => {
+      initAdminLogin(); // 延迟一丁点时间执行，确保 DOM 节点已存在
+  }, 100);
+});
   } else if (hostname.startsWith('usclgcc.') || pathname.startsWith('/a/usclgcc')) {
     root.innerHTML = USCLGCCPage
   } else if (hostname.startsWith('ilausa.') || pathname.startsWith('/a/ilausa')) {
