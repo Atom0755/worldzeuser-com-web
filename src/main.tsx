@@ -360,8 +360,12 @@ function initAdminLogin() {
   }
 }
 
+// ============================================
+// 🎯 修复：将函数声明为全局函数
+// ============================================
+
 // 显示登录弹窗
-function showLoginModal() {
+(window as any).showLoginModal = function() {
   const existing = document.getElementById('adminLoginModal');
   if (existing) {
     existing.remove();
@@ -470,12 +474,10 @@ function showLoginModal() {
       </form>
 
       <div style="text-align: center; margin-top: 15px;">
-        <a href="#" onclick="showForgotPassword(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+        <a href="#" onclick="window.showForgotPassword(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
           🔑 忘记密码？
         </a>
       </div>
-      // 在 function showForgotPassword() { ... } 后面加上这一行
-(window as any).showForgotPassword = showForgotPassword;
 
       <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
         如需帮助，请联系系统管理员
@@ -495,12 +497,14 @@ function showLoginModal() {
   if (loginForm) {
     loginForm.addEventListener('submit', handleAdminLogin);
   }
+};
+
+// 初始化时也定义为局部函数
+function showLoginModal() {
+  (window as any).showLoginModal();
 }
 
-// ============================================
-// 处理管理员登录 - 跳转到 admin-simple.html
-// ============================================
-
+// 处理管理员登录
 async function handleAdminLogin(e: any) { 
   e.preventDefault();
 
@@ -540,7 +544,7 @@ async function handleAdminLogin(e: any) {
       `;
     }
 
-    // 🎯 登录成功后直接跳转到 admin-simple.html
+    // 登录成功后直接跳转到 admin-simple.html
     setTimeout(() => {
       window.location.href = '/admin-simple.html';
     }, 1000);
@@ -559,10 +563,10 @@ async function handleAdminLogin(e: any) {
 }
 
 // ============================================
-// 🔑 忘记密码功能 - 自助重置密码
+// 🔑 忘记密码功能 - 声明为全局函数
 // ============================================
 
-function showForgotPassword() {
+(window as any).showForgotPassword = function() {
   // 创建忘记密码弹窗
   const existing = document.getElementById('forgotPasswordModal');
   if (existing) {
@@ -654,14 +658,17 @@ function showForgotPassword() {
       </form>
 
       <div style="text-align: center; margin-top: 15px;">
-        <a href="#" onclick="document.getElementById('forgotPasswordModal').remove(); showLoginModal(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
+        <a href="#" onclick="document.getElementById('forgotPasswordModal').remove(); window.showLoginModal(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">
           ← 返回登录
         </a>
       </div>
 
       <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
         <p style="font-size: 12px; color: #666; line-height: 1.6; margin: 0;">
-          💡 提示：点击发送后，请检查您的邮箱（包括垃圾邮件文件夹）。点击邮件中的链接即可设置新密码。
+          💡 <strong>提示：</strong><br>
+          • 密码必须至少8位<br>
+          • 包含大小写字母和数字<br>
+          • 点击发送后请检查邮箱（包括垃圾邮件）
         </p>
       </div>
     </div>
@@ -679,7 +686,7 @@ function showForgotPassword() {
   if (forgotForm) {
     forgotForm.addEventListener('submit', handleForgotPassword);
   }
-}
+};
 
 // 处理忘记密码请求
 async function handleForgotPassword(e: any) {
@@ -727,7 +734,10 @@ async function handleForgotPassword(e: any) {
         <div style="font-weight: 600; margin-bottom: 8px;">✅ 重置邮件已发送！</div>
         <div style="font-size: 13px; line-height: 1.6;">
           我们已向 <strong>${email}</strong> 发送了密码重置链接。<br><br>
-          请检查您的邮箱（包括垃圾邮件文件夹），点击邮件中的链接设置新密码。
+          <strong>接下来：</strong><br>
+          1. 检查您的邮箱（包括垃圾邮件）<br>
+          2. 点击邮件中的链接<br>
+          3. 设置新密码（至少8位，含大小写字母+数字）
         </div>
       </div>
     `;
