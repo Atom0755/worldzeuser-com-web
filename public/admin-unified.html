@@ -687,11 +687,23 @@
 
     // 检查登录状态
     async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        showAdminPage(session.user);
-      }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        // 未登录，显示登录页面
+        return;
     }
+    
+    // 已登录，检查当前页面
+    const currentPage = window.location.pathname.split('/').pop();
+    
+    if (currentPage === 'admin-unified.html') {
+        // 如果在unified页面且已登录，跳转到simple页面
+        window.location.href = 'admin-simple.html';  // ✅ 修复：添加跳转
+    } else {
+        // 如果已经在simple页面，显示管理员信息
+        showAdminPage(session.user);
+    }
+}
 
     // 页面切换函数
     function showLoginPage() {
