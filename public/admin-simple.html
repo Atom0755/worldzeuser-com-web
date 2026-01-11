@@ -1,852 +1,886 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USCGCC 管理后台</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USCGCC 管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* 登录页面 */
-    #loginPage {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-    .login-card {
-      background: white;
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      max-width: 400px;
-      width: 100%;
-    }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
 
-    .logo {
-      text-align: center;
-      margin-bottom: 30px;
-    }
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-    .logo img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin-bottom: 15px;
-    }
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
 
-    .logo h2 {
-      color: #333;
-      margin-bottom: 5px;
-    }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-    .logo p {
-      color: #666;
-      font-size: 14px;
-    }
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
 
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #333;
-    }
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
 
-    input, textarea, select {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.3s;
-    }
+        .tabs {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
 
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: #667eea;
-    }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
 
-    textarea {
-      min-height: 150px;
-      font-family: inherit;
-      resize: vertical;
-    }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #666;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .btn {
-      width: 100%;
-      background: #667eea;
-      color: white;
-      padding: 14px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
+        .tab-btn:hover {
+            background: #f5f5f5;
+        }
 
-    .btn:hover {
-      background: #5568d3;
-    }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
 
-    .btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
+        .tab-content {
+            display: none;
+        }
 
-    .btn-sm {
-      padding: 8px 16px;
-      font-size: 14px;
-      width: auto;
-    }
+        .tab-content.active {
+            display: block;
+        }
 
-    .btn-danger {
-      background: #dc3545;
-    }
+        .content-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
 
-    .btn-danger:hover {
-      background: #c82333;
-    }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
 
-    .alert {
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
 
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
 
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
 
-    /* 管理后台 */
-    #adminPage {
-      display: none;
-      padding: 20px;
-    }
+        .form-section {
+            margin-bottom: 30px;
+        }
 
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+        .form-section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .header {
-      background: white;
-      padding: 20px 30px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-    .header h1 {
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
 
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
+        .form-group label span {
+            color: #e74c3c;
+        }
 
-    .user-email {
-      color: #666;
-      font-size: 14px;
-    }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
 
-    .btn-logout {
-      background: #dc3545;
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
 
-    .btn-logout:hover {
-      background: #c82333;
-    }
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
 
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
 
-    .tab {
-      background: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
 
-    .tab:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
+        .items-list {
+            margin-top: 30px;
+        }
 
-    .tab.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
+        .items-list h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .tab-content {
-      display: none;
-    }
+        .item-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
 
-    .tab-content.active {
-      display: block;
-    }
+        .item-card:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
 
-    .card {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
 
-    .card h2 {
-      color: #333;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+        .item-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            flex: 1;
+        }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
-    }
+        .item-category {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
 
-    .stat-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-    }
+        .item-content {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
 
-    .stat-card h3 {
-      font-size: 32px;
-      margin-bottom: 5px;
-    }
+        .item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #999;
+        }
 
-    .stat-card p {
-      font-size: 14px;
-      opacity: 0.9;
-    }
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
 
-    .item-list {
-      margin-top: 20px;
-    }
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
 
-    .item {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      border: 2px solid #e9ecef;
-      transition: all 0.3s;
-    }
+        .approve-btn {
+            background: #27ae60;
+            color: white;
+        }
 
-    .item:hover {
-      border-color: #667eea;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-    }
+        .approve-btn:hover {
+            background: #229954;
+        }
 
-    .item h3 {
-      color: #333;
-      margin-bottom: 10px;
-      font-size: 18px;
-    }
+        .reject-btn {
+            background: #e74c3c;
+            color: white;
+        }
 
-    .item p {
-      color: #666;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
+        .reject-btn:hover {
+            background: #c0392b;
+        }
 
-    .item-meta {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      font-size: 13px;
-      color: #999;
-      margin-bottom: 10px;
-    }
+        .edit-btn {
+            background: #3498db;
+            color: white;
+        }
 
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-    }
+        .edit-btn:hover {
+            background: #2980b9;
+        }
 
-    .badge-success {
-      background: #d4edda;
-      color: #155724;
-    }
+        .delete-btn {
+            background: #95a5a6;
+            color: white;
+        }
 
-    .badge-warning {
-      background: #fff3cd;
-      color: #856404;
-    }
+        .delete-btn:hover {
+            background: #7f8c8d;
+        }
 
-    .actions {
-      display: flex;
-      gap: 10px;
-    }
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-    @media (max-width: 768px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+        .bulk-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .bulk-approve {
+            background: #27ae60;
+            color: white;
+        }
+
+        .bulk-reject {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .select-all {
+            background: #3498db;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* AI对话特殊样式 */
+        .conversation-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .conversation-item.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .conversation-messages {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .conversation-message {
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .conversation-message.user {
+            background: #e3f2fd;
+        }
+
+        .conversation-message.assistant {
+            background: #f3e5f5;
+        }
+
+        .message-role {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-buttons {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
 </head>
 <body>
-  <!-- 登录页面 -->
-  <div id="loginPage">
-    <div class="login-card">
-      <div class="logo">
-        <img src="https://uscgcc.worldzeuser.com/logo.png" alt="USCGCC Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23667eea%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2240%22 font-weight=%22bold%22%3ELOGO%3C/text%3E%3C/svg%3E'">
-        <h2>USCGCC 管理后台</h2>
-        <p>美国粤商会内容管理系统</p>
-      </div>
-
-      <div id="loginAlert"></div>
-
-      <form id="loginForm">
-        <div class="form-group">
-          <label for="email">📧 管理员邮箱</label>
-          <input type="email" id="email" required placeholder="admin@uscgcc.org">
-        </div>
-
-        <div class="form-group">
-          <label for="password">🔒 密码</label>
-          <input type="password" id="password" required placeholder="输入密码">
-        </div>
-
-        <button type="submit" class="btn" id="loginBtn">🔐 登录</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- 管理后台页面 -->
-  <div id="adminPage">
-    <div class="container">
-      <!-- 顶部导航 -->
-      <div class="header">
-        <h1>📊 USCGCC 管理后台</h1>
+    <div class="header">
+        <h1>
+            <div class="logo">📊</div>
+            USCGCC 管理后台
+        </h1>
         <div class="user-info">
-          <span class="user-email" id="userEmail"></span>
-          <button class="btn-logout" onclick="logout()">🚪 退出</button>
+            <span class="user-email" id="userEmail">加载中...</span>
+            <button class="logout-btn" onclick="logout()">退出</button>
         </div>
-      </div>
-
-      <div id="adminAlert"></div>
-
-      <!-- 标签页 -->
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('knowledge')">📚 知识库管理</div>
-        <div class="tab" onclick="switchTab('news')">📰 动态新闻</div>
-      </div>
-
-      <!-- 知识库管理 -->
-      <div id="knowledgeTab" class="tab-content active">
-        <div class="stats">
-          <div class="stat-card">
-            <h3 id="kbTotal">-</h3>
-            <p>知识库条目</p>
-          </div>
-          <div class="stat-card">
-            <h3 id="kbWithEmbedding">-</h3>
-            <p>已生成向量</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>➕ 添加知识库内容</h2>
-          <form id="knowledgeForm">
-            <div class="form-group">
-              <label>标题 *</label>
-              <input type="text" id="kb_title" required placeholder="例如：商会简介">
-            </div>
-
-            <div class="form-group">
-              <label>分类 *</label>
-              <select id="kb_category">
-                <option value="商会简介">商会简介</option>
-                <option value="总会长简介">总会长简介</option>
-                <option value="秘书长简介">秘书长简介</option>
-                <option value="入会指南">入会指南</option>
-                <option value="创始单位">创始单位</option>
-                <option value="联系我们">联系我们</option>
-                <option value="商会动态">商会动态</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>内容 *</label>
-              <textarea id="kb_content" required placeholder="输入内容..."></textarea>
-            </div>
-
-            <button type="submit" class="btn">💾 保存并生成向量</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h2>📋 现有知识库</h2>
-          <div id="knowledgeList" class="item-list">
-            <div class="loading">加载中...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 动态新闻管理 -->
-      <div id="newsTab" class="tab-content">
-        <div class="stats">
-          <div class="stat-card">
-            <h3 id="newsTotal">-</h3>
-            <p>总动态数</p>
-          </div>
-          <div class="stat-card">
-            <h3 id="newsPublished">-</h3>
-            <p>已发布</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>➕ 发布新动态</h2>
-          <form id="newsForm">
-            <div class="form-group">
-              <label>标题 *</label>
-              <input type="text" id="news_title" required placeholder="例如：2024 美中经贸交流会成功举办">
-            </div>
-
-            <div class="form-group">
-              <label>内容 *</label>
-              <textarea id="news_content" required placeholder="输入动态内容..."></textarea>
-            </div>
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label>媒体类型</label>
-                <select id="news_mediaType" onchange="toggleMediaUrl()">
-                  <option value="text">纯文字</option>
-                  <option value="image">图片</option>
-                  <option value="video">视频</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>状态</label>
-                <select id="news_status">
-                  <option value="published">立即发布</option>
-                  <option value="draft">保存为草稿</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group" id="mediaUrlGroup" style="display:none;">
-              <label>媒体链接</label>
-              <input type="text" id="news_mediaUrl" placeholder="图片或视频的URL">
-            </div>
-
-            <div class="form-group">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" id="news_addToKB" checked>
-                <span>同时添加到知识库（AI可引用此动态）</span>
-              </label>
-            </div>
-
-            <button type="submit" class="btn">📢 发布动态</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h2>📋 已发布动态</h2>
-          <div id="newsList" class="item-list">
-            <div class="loading">加载中...</div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <script>
-    // 初始化 Supabase
-    const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1MDMzOTYsImV4cCI6MjA1MjA3OTM5Nn0.2AwbeB0xIdHwNILQ3Fg9dPHCEm6QczRPCFMu_hKjqPk';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const TENANT_SLUG = 'uscgcc';
-
-    // 检查登录状态
-    async function checkAuth() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        showAdminPage(session.user);
-      }
-    }
-
-    // 登录
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const btn = document.getElementById('loginBtn');
-      btn.disabled = true;
-      btn.textContent = '登录中...';
-      document.getElementById('loginAlert').innerHTML = '';
-
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
-
-        if (error) throw error;
-        showAdminPage(data.user);
-      } catch (error) {
-        let errorMessage = error.message;
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = '邮箱或密码错误，请重试';
-        }
-        document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">❌ ${errorMessage}</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '🔐 登录';
-      }
-    });
-
-    // 显示管理页面
-    function showAdminPage(user) {
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('adminPage').style.display = 'block';
-      document.getElementById('userEmail').textContent = user.email;
-      loadAllData();
-    }
-
-    // 退出登录
-    async function logout() {
-      await supabaseClient.auth.signOut();
-      location.reload();
-    }
-
-    // 切换标签页
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      event.target.classList.add('active');
-      document.getElementById(tab + 'Tab').classList.add('active');
-    }
-
-    // 加载所有数据
-    async function loadAllData() {
-      loadKnowledgeStats();
-      loadKnowledgeList();
-      loadNewsStats();
-      loadNewsList();
-    }
-
-    // 知识库统计
-    async function loadKnowledgeStats() {
-      const { data } = await supabaseClient
-        .from('knowledge_base')
-        .select('id, embedding')
-        .eq('tenant_slug', TENANT_SLUG);
-      
-      document.getElementById('kbTotal').textContent = data?.length || 0;
-      document.getElementById('kbWithEmbedding').textContent = 
-        data?.filter(i => i.embedding).length || 0;
-    }
-
-    // 知识库列表
-    async function loadKnowledgeList() {
-      const listDiv = document.getElementById('knowledgeList');
-      listDiv.innerHTML = '<div class="loading">加载中...</div>';
-
-      const { data, error } = await supabaseClient
-        .from('knowledge_base')
-        .select('*')
-        .eq('tenant_slug', TENANT_SLUG)
-        .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无知识库内容</p>';
-        return;
-      }
-
-      listDiv.innerHTML = data.map(item => `
-        <div class="item">
-          <h3>
-            ${escapeHtml(item.title)}
-            <span class="badge badge-success">${escapeHtml(item.category || '未分类')}</span>
-            ${item.embedding ? '<span class="badge badge-success">✓ 已生成向量</span>' : ''}
-          </h3>
-          <p>${escapeHtml((item.content || '').substring(0, 150))}...</p>
-          <div class="item-meta">
-            <span>📅 ${new Date(item.created_at).toLocaleString('zh-CN')}</span>
-          </div>
-          <div class="actions">
-            <button class="btn btn-sm btn-danger" onclick="deleteKnowledge('${item.id}', '${escapeHtml(item.title)}')">🗑️ 删除</button>
-          </div>
+    <div class="tabs">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('knowledge')" data-tab="knowledge">
+                📚 知识库管理
+            </button>
+            <button class="tab-btn" onclick="switchTab('news')" data-tab="news">
+                📰 动态新闻
+            </button>
+            <button class="tab-btn" onclick="switchTab('conversations')" data-tab="conversations">
+                🤖 AI对话内容
+            </button>
         </div>
-      `).join('');
-    }
 
-    // 新闻统计
-    async function loadNewsStats() {
-      const { data } = await supabaseClient
-        .from('news')
-        .select('id, status')
-        .eq('tenant_slug', TENANT_SLUG);
-      
-      document.getElementById('newsTotal').textContent = data?.length || 0;
-      document.getElementById('newsPublished').textContent = 
-        data?.filter(i => i.status === 'published').length || 0;
-    }
+        <!-- 知识库管理标签 -->
+        <div id="knowledge-tab" class="tab-content active">
+            <div class="content-section">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="knowledgeCount">0</div>
+                        <div class="stat-label">知识库条目</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="publishedCount">0</div>
+                        <div class="stat-label">已生成向量</div>
+                    </div>
+                </div>
 
-    // 新闻列表
-    async function loadNewsList() {
-      const listDiv = document.getElementById('newsList');
-      listDiv.innerHTML = '<div class="loading">加载中...</div>';
+                <div class="form-section">
+                    <h2>➕ 添加知识库内容</h2>
+                    <form id="knowledgeForm" onsubmit="addKnowledge(event)">
+                        <div class="form-group">
+                            <label>标题 <span>*</span></label>
+                            <input type="text" id="knowledgeTitle" placeholder="例如：商会简介" required>
+                        </div>
+                        <div class="form-group">
+                            <label>分类 <span>*</span></label>
+                            <select id="knowledgeCategory" required>
+                                <option value="商会简介">商会简介</option>
+                                <option value="会员服务">会员服务</option>
+                                <option value="活动信息">活动信息</option>
+                                <option value="联系我们">联系我们</option>
+                                <option value="常见问题">常见问题</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>内容 <span>*</span></label>
+                            <textarea id="knowledgeContent" placeholder="输入内容..." required></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn">💾 保存并生成向量</button>
+                    </form>
+                </div>
 
-      const { data, error } = await supabaseClient
-        .from('news')
-        .select('*')
-        .eq('tenant_slug', TENANT_SLUG)
-        .order('published_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        listDiv.innerHTML = '<p style="text-align:center;color:#666;">暂无动态内容</p>';
-        return;
-      }
-
-      listDiv.innerHTML = data.map(item => `
-        <div class="item">
-          <h3>
-            ${escapeHtml(item.title)}
-            <span class="badge ${item.status === 'published' ? 'badge-success' : 'badge-warning'}">
-              ${item.status === 'published' ? '✓ 已发布' : '📝 草稿'}
-            </span>
-          </h3>
-          <p>${escapeHtml((item.content || '').substring(0, 150))}...</p>
-          <div class="item-meta">
-            <span>📅 ${new Date(item.published_at || item.created_at).toLocaleString('zh-CN')}</span>
-          </div>
-          <div class="actions">
-            <button class="btn btn-sm btn-danger" onclick="deleteNews('${item.id}', '${escapeHtml(item.title)}')">🗑️ 删除</button>
-          </div>
+                <div class="items-list">
+                    <h3>📋 现有知识库</h3>
+                    <div id="knowledgeList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <p>暂无知识库内容</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      `).join('');
-    }
 
-    // 提交知识库
-    document.getElementById('knowledgeForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+        <!-- 动态新闻标签 -->
+        <div id="news-tab" class="tab-content">
+            <div class="content-section">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="newsCount">0</div>
+                        <div class="stat-label">待审核新闻</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="approvedNewsCount">0</div>
+                        <div class="stat-label">已发布新闻</div>
+                    </div>
+                </div>
 
-      const title = document.getElementById('kb_title').value;
-      const category = document.getElementById('kb_category').value;
-      const content = document.getElementById('kb_content').value;
+                <div class="bulk-actions">
+                    <button class="bulk-btn select-all" onclick="selectAllNews()">全选</button>
+                    <button class="bulk-btn bulk-approve" onclick="bulkApproveNews()">批量通过</button>
+                    <button class="bulk-btn bulk-reject" onclick="bulkRejectNews()">批量拒绝</button>
+                </div>
 
-      try {
-        const { error } = await supabaseClient
-          .from('knowledge_base')
-          .insert([{ tenant_slug: TENANT_SLUG, title, category, content, content_type: 'text' }]);
+                <div class="items-list">
+                    <h3>📰 待审核动态新闻</h3>
+                    <div id="newsList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>暂无待审核的新闻</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        if (error) throw error;
+        <!-- AI对话内容标签 -->
+        <div id="conversations-tab" class="tab-content">
+            <div class="content-section">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="conversationsCount">0</div>
+                        <div class="stat-label">AI对话记录</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingQACount">0</div>
+                        <div class="stat-label">待添加到知识库</div>
+                    </div>
+                </div>
 
-        // 生成向量
-        await supabaseClient.functions.invoke('embed-backfill', {
-          body: { tenant_slug: TENANT_SLUG, limit: 50 }
-        });
+                <div class="bulk-actions">
+                    <button class="bulk-btn select-all" onclick="selectAllConversations()">全选</button>
+                    <button class="bulk-btn bulk-approve" onclick="bulkAddToKnowledge()">批量添加到知识库</button>
+                    <button class="bulk-btn bulk-reject" onclick="bulkRejectConversations()">批量忽略</button>
+                </div>
 
-        showAdminAlert('✅ 知识库添加成功！', 'success');
-        document.getElementById('knowledgeForm').reset();
-        loadKnowledgeStats();
-        loadKnowledgeList();
-      } catch (error) {
-        showAdminAlert('❌ 添加失败: ' + error.message, 'error');
-      }
-    });
+                <div class="items-list">
+                    <h3>🤖 AI助手对话内容</h3>
+                    <div id="conversationsList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💬</div>
+                            <p>暂无AI对话记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // 提交新闻
-    document.getElementById('newsForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-      const title = document.getElementById('news_title').value;
-      const content = document.getElementById('news_content').value;
-      const mediaType = document.getElementById('news_mediaType').value;
-      const mediaUrl = document.getElementById('news_mediaUrl').value;
-      const status = document.getElementById('news_status').value;
-      const addToKB = document.getElementById('news_addToKB').checked;
+        // 初始化Supabase
+        const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NDc5NzgsImV4cCI6MjA1MjQyMzk3OH0.xvlk4y_xDK5UhRo2JUv0QEXD1fFD-f_NsFwfz5TRN0Y';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabase = supabase;
 
-      try {
-        // 1. 插入新闻
-        const { error: newsError } = await supabaseClient
-          .from('news')
-          .insert([{
-            tenant_slug: TENANT_SLUG,
-            title,
-            content,
-            media_type: mediaType,
-            media_url: mediaUrl || null,
-            status,
-            published_at: status === 'published' ? new Date().toISOString() : null
-          }]);
-
-        if (newsError) throw newsError;
-
-        // 2. 如果勾选了"添加到知识库"且状态为已发布
-        if (addToKB && status === 'published') {
-          await supabaseClient
-            .from('knowledge_base')
-            .insert([{
-              tenant_slug: TENANT_SLUG,
-              title: title,
-              content: content,
-              category: '商会动态',
-              content_type: 'text',
-              source_url: mediaUrl || null
-            }]);
-
-          // 生成向量
-          await supabaseClient.functions.invoke('embed-backfill', {
-            body: { tenant_slug: TENANT_SLUG, limit: 50 }
-          });
+        // 检查认证
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'admin-unified.html';
+                return;
+            }
+            
+            document.getElementById('userEmail').textContent = session.user.email;
+            
+            // 加载数据
+            loadKnowledgeBase();
+            loadNews();
+            loadConversations();
         }
 
-        showAdminAlert('✅ 动态发布成功' + (addToKB && status === 'published' ? '，已添加到知识库！' : '！'), 'success');
-        document.getElementById('newsForm').reset();
-        document.getElementById('news_addToKB').checked = true; // 重置为默认勾选
-        loadNewsStats();
-        loadNewsList();
-        if (addToKB && status === 'published') {
-          loadKnowledgeStats();
-          loadKnowledgeList();
-        }
-      } catch (error) {
-        showAdminAlert('❌ 发布失败: ' + error.message, 'error');
-      }
-    });
+        // 加载知识库
+        window.loadKnowledgeBase = async function() {
+            try {
+                const { data, error } = await supabase
+                    .from('ai_knowledge_base')
+                    .select('*')
+                    .order('created_at', { ascending: false });
 
-    // 删除知识库
-    async function deleteKnowledge(id, title) {
-      if (!confirm(`确定删除"${title}"吗？`)) return;
+                if (error) throw error;
 
-      const { error } = await supabaseClient
-        .from('knowledge_base')
-        .delete()
-        .eq('id', id);
+                document.getElementById('knowledgeCount').textContent = data?.length || 0;
+                
+                const listDiv = document.getElementById('knowledgeList');
+                if (data && data.length > 0) {
+                    listDiv.innerHTML = data.map(item => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div class="item-title">${item.title}</div>
+                                <div class="item-category">${item.category || '未分类'}</div>
+                            </div>
+                            <div class="item-content">${item.content.substring(0, 150)}...</div>
+                            <div class="item-meta">
+                                <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                                <div class="item-actions">
+                                    <button class="action-btn edit-btn" onclick="editKnowledge('${item.id}')">编辑</button>
+                                    <button class="action-btn delete-btn" onclick="deleteKnowledge('${item.id}')">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>暂无知识库内容</p></div>';
+                }
+            } catch (error) {
+                console.error('加载知识库失败:', error);
+            }
+        };
 
-      if (!error) {
-        showAdminAlert('✅ 已删除', 'success');
-        loadKnowledgeStats();
-        loadKnowledgeList();
-      } else {
-        showAdminAlert('❌ 删除失败', 'error');
-      }
-    }
+        // 添加知识库
+        window.addKnowledge = async function(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('knowledgeTitle').value;
+            const category = document.getElementById('knowledgeCategory').value;
+            const content = document.getElementById('knowledgeContent').value;
 
-    // 删除新闻
-    async function deleteNews(id, title) {
-      if (!confirm(`确定删除"${title}"吗？`)) return;
+            try {
+                const { error } = await supabase
+                    .from('ai_knowledge_base')
+                    .insert([{
+                        title,
+                        category,
+                        content,
+                        source_type: 'manual'
+                    }]);
 
-      const { error } = await supabaseClient
-        .from('news')
-        .delete()
-        .eq('id', id);
+                if (error) throw error;
 
-      if (!error) {
-        showAdminAlert('✅ 已删除', 'success');
-        loadNewsStats();
-        loadNewsList();
-      } else {
-        showAdminAlert('❌ 删除失败', 'error');
-      }
-    }
+                alert('✅ 知识库内容添加成功！');
+                document.getElementById('knowledgeForm').reset();
+                loadKnowledgeBase();
+            } catch (error) {
+                console.error('添加失败:', error);
+                alert('❌ 添加失败：' + error.message);
+            }
+        };
 
-    // 显示提示
-    function showAdminAlert(message, type) {
-      document.getElementById('adminAlert').innerHTML = `
-        <div class="alert alert-${type}">${message}</div>
-      `;
-      setTimeout(() => {
-        document.getElementById('adminAlert').innerHTML = '';
-      }, 5000);
-    }
+        // 加载新闻
+        window.loadNews = async function() {
+            try {
+                // 这里假设你有一个news表
+                // 如果没有，需要创建
+                const { data, error } = await supabase
+                    .from('news')
+                    .select('*')
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
 
-    // 切换媒体URL显示
-    function toggleMediaUrl() {
-      const mediaType = document.getElementById('news_mediaType').value;
-      document.getElementById('mediaUrlGroup').style.display = 
-        (mediaType === 'image' || mediaType === 'video') ? 'block' : 'none';
-    }
+                if (error && error.code !== 'PGRST116') throw error;
 
-    // HTML转义
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+                document.getElementById('newsCount').textContent = data?.length || 0;
+                
+                const listDiv = document.getElementById('newsList');
+                if (data && data.length > 0) {
+                    listDiv.innerHTML = data.map(item => `
+                        <div class="item-card">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" class="news-checkbox" data-id="${item.id}">
+                                <div style="flex: 1;">
+                                    <div class="item-header">
+                                        <div class="item-title">${item.title}</div>
+                                    </div>
+                                    <div class="item-content">${item.content?.substring(0, 150)}...</div>
+                                    <div class="item-meta">
+                                        <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                                        <div class="item-actions">
+                                            <button class="action-btn approve-btn" onclick="approveNews('${item.id}')">通过</button>
+                                            <button class="action-btn reject-btn" onclick="rejectNews('${item.id}')">拒绝</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
+                }
+            } catch (error) {
+                console.error('加载新闻失败:', error);
+            }
+        };
 
-    // 页面加载时检查登录
-    checkAuth();
-  </script>
+        // 加载AI对话
+        window.loadConversations = async function() {
+            try {
+                const { data, error } = await supabase
+                    .from('ai_conversations')
+                    .select('*')
+                    .order('updated_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                document.getElementById('conversationsCount').textContent = data?.length || 0;
+                
+                const listDiv = document.getElementById('conversationsList');
+                if (data && data.length > 0) {
+                    listDiv.innerHTML = data.map(conv => {
+                        const messages = conv.messages || [];
+                        const lastMessage = messages[messages.length - 1];
+                        
+                        return `
+                            <div class="conversation-item">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" class="conversation-checkbox" data-id="${conv.id}">
+                                    <div style="flex: 1;">
+                                        <div class="item-header">
+                                            <div class="item-title">${conv.title || '对话记录'}</div>
+                                        </div>
+                                        <div class="conversation-messages">
+                                            ${messages.slice(-3).map(msg => `
+                                                <div class="conversation-message ${msg.role}">
+                                                    <div class="message-role">${msg.role === 'user' ? '👤 用户' : '🤖 AI助手'}</div>
+                                                    <div class="message-text">${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}</div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                        <div class="item-meta">
+                                            <span>${new Date(conv.updated_at).toLocaleString('zh-CN')}</span>
+                                            <div class="item-actions">
+                                                <button class="action-btn approve-btn" onclick="addConversationToKnowledge('${conv.id}')">添加到知识库</button>
+                                                <button class="action-btn reject-btn" onclick="ignoreConversation('${conv.id}')">忽略</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><p>暂无AI对话记录</p></div>';
+                }
+            } catch (error) {
+                console.error('加载对话失败:', error);
+            }
+        };
+
+        // 添加对话到知识库
+        window.addConversationToKnowledge = async function(conversationId) {
+            try {
+                const { data: conv, error } = await supabase
+                    .from('ai_conversations')
+                    .select('*')
+                    .eq('id', conversationId)
+                    .single();
+
+                if (error) throw error;
+
+                const messages = conv.messages || [];
+                const userQuestions = messages.filter(m => m.role === 'user').map(m => m.content).join('\n');
+                const aiAnswers = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n');
+
+                const title = messages.find(m => m.role === 'user')?.content.substring(0, 50) + '...';
+                const content = `问题：\n${userQuestions}\n\n回答：\n${aiAnswers}`;
+
+                const { error: insertError } = await supabase
+                    .from('ai_knowledge_base')
+                    .insert([{
+                        title: title || '从对话生成',
+                        category: '常见问题',
+                        content: content,
+                        source_type: 'conversation',
+                        source_id: conversationId
+                    }]);
+
+                if (insertError) throw insertError;
+
+                alert('✅ 已添加到知识库！');
+                loadKnowledgeBase();
+                loadConversations();
+            } catch (error) {
+                console.error('添加失败:', error);
+                alert('❌ 添加失败：' + error.message);
+            }
+        };
+
+        // 批量添加到知识库
+        window.bulkAddToKnowledge = async function() {
+            const checkboxes = document.querySelectorAll('.conversation-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要添加的对话');
+                return;
+            }
+
+            if (!confirm(`确定要将 ${checkboxes.length} 条对话添加到知识库吗？`)) {
+                return;
+            }
+
+            for (const checkbox of checkboxes) {
+                await addConversationToKnowledge(checkbox.dataset.id);
+            }
+
+            alert('✅ 批量添加完成！');
+        };
+
+        // 全选对话
+        window.selectAllConversations = function() {
+            const checkboxes = document.querySelectorAll('.conversation-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        };
+
+        // 切换标签
+        window.switchTab = function(tabName) {
+            // 更新按钮状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 更新内容显示
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+        };
+
+        // 退出登录
+        window.logout = async function() {
+            await supabase.auth.signOut();
+            window.location.href = 'admin-unified.html';
+        };
+
+        // 初始化
+        checkAuth();
+    </script>
 </body>
 </html>
