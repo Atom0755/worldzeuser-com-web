@@ -507,9 +507,9 @@
 
       <!-- 标签页 -->
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('knowledge')">📚 知识库管理</div>
-        <div class="tab" onclick="switchTab('news')">📰 动态新闻</div>
-        <div class="tab" onclick="switchTab('settings')">⚙️ 系统设置</div>
+        <div class="tab active" onclick="switchTab(event, 'knowledge')">📚 知识库管理</div>
+<div class="tab" onclick="switchTab(event, 'news')">📰 动态新闻</div>
+<div class="tab" onclick="switchTab(event, 'settings')">⚙️ 系统设置</div>
       </div>
 
       <!-- 知识库管理 -->
@@ -909,13 +909,13 @@
     }
 
     // 切换标签页
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      event.target.classList.add('active');
-      document.getElementById(tab + 'Tab').classList.add('active');
-    }
+function switchTab(e, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  
+  if (e && e.target) e.target.classList.add('active');
+  document.getElementById(tab + 'Tab').classList.add('active');
+}
 
     // 加载所有数据
     async function loadAllData() {
