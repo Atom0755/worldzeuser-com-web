@@ -474,6 +474,8 @@ function showLoginModal() {
           🔑 忘记密码？
         </a>
       </div>
+      // 在 function showForgotPassword() { ... } 后面加上这一行
+(window as any).showForgotPassword = showForgotPassword;
 
       <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
         如需帮助，请联系系统管理员
