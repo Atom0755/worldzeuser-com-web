@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USCGCC 管理后台</title>
+    
+    <!-- 引入Quill富文本编辑器 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -384,7 +389,6 @@
             color: white;
         }
 
-        /* 新增：发布动态按钮样式 */
         .publish-btn {
             background: #667eea;
             color: white;
@@ -406,7 +410,7 @@
             opacity: 0.5;
         }
 
-        /* 新增：弹窗样式 */
+        /* 弹窗样式 */
         .modal {
             display: none;
             position: fixed;
@@ -418,16 +422,18 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
         }
 
         .modal-content {
             background: white;
             border-radius: 20px;
             width: 90%;
-            max-width: 600px;
+            max-width: 900px;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin: 20px auto;
         }
 
         .modal-header {
@@ -502,6 +508,114 @@
             background: #5568d3;
         }
 
+        /* 新增：封面图片上传样式 */
+        .cover-image-upload {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .cover-preview {
+            width: 180px;
+            height: 180px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8f9fa;
+            position: relative;
+        }
+
+        .cover-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cover-preview-placeholder {
+            text-align: center;
+            color: #999;
+        }
+
+        .cover-upload-btn {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .cover-upload-btn:hover {
+            background: #2980b9;
+        }
+
+        .cover-remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: none;
+        }
+
+        .cover-preview:hover .cover-remove-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 新增：富文本编辑器样式 */
+        #editor-container {
+            height: 400px;
+            background: white;
+        }
+
+        .ql-editor {
+            min-height: 350px;
+        }
+
+        /* 新增：图片编辑工具栏 */
+        .image-edit-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .image-edit-btn {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .image-edit-btn:hover {
+            background: #5568d3;
+        }
+
+        .image-edit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         /* AI对话特殊样式 */
         .conversation-item {
             background: white;
@@ -560,6 +674,10 @@
 
             .tab-buttons {
                 flex-wrap: wrap;
+            }
+
+            .cover-image-upload {
+                flex-direction: column;
             }
         }
     </style>
@@ -655,7 +773,6 @@
                     </div>
                 </div>
 
-                <!-- 修改：在左侧添加"发布动态"按钮 -->
                 <div class="bulk-actions">
                     <button class="bulk-btn publish-btn" onclick="openPublishModal()">➕ 发布动态</button>
                     <button class="bulk-btn select-all" onclick="selectAllNews()">全选</button>
@@ -673,7 +790,6 @@
                     </div>
                 </div>
 
-                <!-- 新增：已发布新闻区域 -->
                 <div class="items-list" style="margin-top: 40px;">
                     <h3>✅ 已发布新闻</h3>
                     <div id="publishedNewsList">
@@ -719,7 +835,7 @@
         </div>
     </div>
 
-    <!-- 新增：发布动态弹窗 -->
+    <!-- 发布动态弹窗 -->
     <div id="publish-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -728,6 +844,30 @@
             </div>
             <div class="modal-body">
                 <form id="publish-form">
+                    <!-- 新增：封面图片上传 -->
+                    <div class="form-group">
+                        <label>封面图片（可选）</label>
+                        <div class="cover-image-upload">
+                            <div class="cover-preview" id="cover-preview">
+                                <div class="cover-preview-placeholder">
+                                    <div style="font-size: 48px;">📷</div>
+                                    <div style="font-size: 12px; margin-top: 10px;">180 x 180 px</div>
+                                </div>
+                                <button type="button" class="cover-remove-btn" onclick="removeCoverImage()">×</button>
+                            </div>
+                            <div>
+                                <input type="file" id="cover-image-input" accept="image/*" style="display: none;" onchange="handleCoverImage(event)">
+                                <button type="button" class="cover-upload-btn" onclick="document.getElementById('cover-image-input').click()">
+                                    📁 选择图片
+                                </button>
+                                <div style="font-size: 12px; color: #999; margin-top: 10px;">
+                                    支持 JPG、PNG、WEBP 格式<br>
+                                    图片将自动调整为 180x180 像素
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>标题 <span>*</span></label>
                         <input type="text" id="news-title" placeholder="请输入新闻标题" required>
@@ -736,9 +876,11 @@
                         <label>发布日期 <span>*</span></label>
                         <input type="date" id="news-date" required>
                     </div>
+                    
+                    <!-- 修改：使用富文本编辑器替代textarea -->
                     <div class="form-group">
                         <label>内容 <span>*</span></label>
-                        <textarea id="news-content" placeholder="请输入新闻全文内容" required style="min-height: 200px;"></textarea>
+                        <div id="editor-container"></div>
                     </div>
                 </form>
             </div>
@@ -752,12 +894,113 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-        // 初始化Supabase
-        const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NDc5NzgsImV4cCI6MjA1MjQyMzk3OH0.xvlk4y_xDK5UhRo2JUv0QEXD1fFD-f_NsFwfz5TRN0Y';
+        // 修改：使用正确的Supabase配置
+        const SUPABASE_URL = 'https://dthgkfxlzyqscxnrtfke.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aGdrZnhsenlxc2N4bnJ0ZmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MzQyMTksImV4cCI6MjA1MjMxMDIxOX0.MlFhkdAuPrjhkWz5RWUq_4z-TvETtKaIp9ZWcvHqq30';
         
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabase = supabase;
+
+        // 新增：初始化富文本编辑器
+        let quill = null;
+        let coverImageData = null;
+
+        function initQuillEditor() {
+            quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                },
+                placeholder: '请输入新闻内容...'
+            });
+
+            // 新增：自定义图片上传处理
+            quill.getModule('toolbar').addHandler('image', function() {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.click();
+
+                input.onchange = async function() {
+                    const file = input.files[0];
+                    if (file) {
+                        const resizedImage = await resizeImage(file, 800, 800);
+                        const range = quill.getSelection();
+                        quill.insertEmbed(range.index, 'image', resizedImage);
+                    }
+                };
+            });
+        }
+
+        // 新增：图片压缩处理函数
+        async function resizeImage(file, maxWidth, maxHeight) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // 计算缩放比例
+                        if (width > maxWidth || height > maxHeight) {
+                            const ratio = Math.min(maxWidth / width, maxHeight / height);
+                            width *= ratio;
+                            height *= ratio;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        resolve(canvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 新增：封面图片处理
+        async function handleCoverImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const resizedImage = await resizeImage(file, 180, 180);
+            coverImageData = resizedImage;
+
+            const preview = document.getElementById('cover-preview');
+            preview.innerHTML = `
+                <img src="${resizedImage}" alt="封面预览">
+                <button type="button" class="cover-remove-btn" onclick="removeCoverImage()">×</button>
+            `;
+        }
+
+        window.handleCoverImage = handleCoverImage;
+
+        // 新增：删除封面图片
+        window.removeCoverImage = function() {
+            coverImageData = null;
+            const preview = document.getElementById('cover-preview');
+            preview.innerHTML = `
+                <div class="cover-preview-placeholder">
+                    <div style="font-size: 48px;">📷</div>
+                    <div style="font-size: 12px; margin-top: 10px;">180 x 180 px</div>
+                </div>
+                <button type="button" class="cover-remove-btn" onclick="removeCoverImage()">×</button>
+            `;
+        };
 
         // 检查认证
         async function checkAuth() {
@@ -842,7 +1085,7 @@
             }
         };
 
-        // 修改：加载新闻（分待审核和已发布）
+        // 加载新闻
         window.loadNews = async function() {
             try {
                 // 加载待审核新闻
@@ -863,6 +1106,7 @@
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" class="news-checkbox" data-id="${item.id}" checked>
                                 <div style="flex: 1;">
+                                    ${item.cover_image ? `<img src="${item.cover_image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; float: left; margin-right: 15px;">` : ''}
                                     <div class="item-header">
                                         <div class="item-title">${item.title}</div>
                                     </div>
@@ -885,7 +1129,7 @@
                     pendingListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
                 }
 
-                // 新增：加载已发布新闻
+                // 加载已发布新闻
                 const { data: publishedNews, error: publishedError } = await supabase
                     .from('news')
                     .select('*')
@@ -900,6 +1144,7 @@
                 if (publishedNews && publishedNews.length > 0) {
                     publishedListDiv.innerHTML = publishedNews.map(item => `
                         <div class="item-card">
+                            ${item.cover_image ? `<img src="${item.cover_image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; float: left; margin-right: 15px;">` : ''}
                             <div class="item-header">
                                 <div class="item-title">${item.title}</div>
                                 <div class="item-category">${item.in_knowledge_base ? '✓ 知识库' : '未入库'}</div>
@@ -921,40 +1166,60 @@
             }
         };
 
-        // 新增：打开发布弹窗
+        // 修改：打开发布弹窗
         window.openPublishModal = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('news-date').value = today;
             document.getElementById('publish-modal').style.display = 'flex';
+            
+            // 初始化富文本编辑器
+            if (!quill) {
+                setTimeout(() => {
+                    initQuillEditor();
+                }, 100);
+            } else {
+                quill.setText('');
+            }
         };
 
-        // 新增：关闭发布弹窗
+        // 关闭发布弹窗
         window.closePublishModal = function() {
             document.getElementById('publish-modal').style.display = 'none';
             document.getElementById('publish-form').reset();
+            if (quill) {
+                quill.setText('');
+            }
+            removeCoverImage();
         };
 
-        // 新增：提交新闻
+        // 修改：提交新闻
         window.submitNews = async function() {
             const title = document.getElementById('news-title').value.trim();
             const date = document.getElementById('news-date').value;
-            const content = document.getElementById('news-content').value.trim();
+            const content = quill.root.innerHTML; // 获取富文本HTML内容
 
-            if (!title || !date || !content) {
+            if (!title || !date || quill.getText().trim().length === 0) {
                 alert('请填写完整的新闻信息');
                 return;
             }
 
             try {
+                const newsData = {
+                    title: title,
+                    publish_date: date,
+                    content: content,
+                    status: 'pending',
+                    in_knowledge_base: false
+                };
+
+                // 如果有封面图片，添加到数据中
+                if (coverImageData) {
+                    newsData.cover_image = coverImageData;
+                }
+
                 const { error } = await supabase
                     .from('news')
-                    .insert([{
-                        title: title,
-                        publish_date: date,
-                        content: content,
-                        status: 'pending',
-                        in_knowledge_base: false
-                    }]);
+                    .insert([newsData]);
 
                 if (error) throw error;
 
@@ -967,7 +1232,7 @@
             }
         };
 
-        // 新增：通过新闻（单个）
+        // 通过新闻
         window.approveNews = async function(newsId) {
             try {
                 const { error } = await supabase
@@ -988,7 +1253,7 @@
             }
         };
 
-        // 新增：拒绝新闻（单个）
+        // 拒绝新闻
         window.rejectNews = async function(newsId) {
             try {
                 const { error } = await supabase
@@ -1009,7 +1274,7 @@
             }
         };
 
-        // 修改：批量通过新闻
+        // 批量通过新闻
         window.bulkApproveNews = async function() {
             const checkboxes = document.querySelectorAll('.news-checkbox:checked');
             if (checkboxes.length === 0) {
@@ -1042,7 +1307,7 @@
             }
         };
 
-        // 修改：批量拒绝新闻
+        // 批量拒绝新闻
         window.bulkRejectNews = async function() {
             const checkboxes = document.querySelectorAll('.news-checkbox:checked');
             if (checkboxes.length === 0) {
@@ -1203,13 +1468,11 @@
 
         // 切换标签
         window.switchTab = function(tabName) {
-            // 更新按钮状态
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
 
-            // 更新内容显示
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
