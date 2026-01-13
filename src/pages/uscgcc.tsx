@@ -66,7 +66,7 @@ export const USCGCCPage = `
         </div>
       </div>
 
-      <div style="flex: 0.8; background: rgba(15, 23, 42, 0.4); border-top: 1px solid rgba(255,255,255,0.05); padding: 12px; overflow-y: auto;">
+      <div id="news-scroll-container" style="flex: 0.8; background: rgba(15, 23, 42, 0.4); border-top: 1px solid rgba(255,255,255,0.05); padding: 12px; overflow-y: auto;">
         <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold;">商会动态 News</div>
         <div id="news-list"></div>
         <div style="text-align: center; padding-top: 5px;">
@@ -100,6 +100,67 @@ export const USCGCCPage = `
         'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio'
       );
 
+      // ====== ✅ 新闻自动轮播所需变量 ======
+      let newsAutoTimer = null;
+      let newsAutoIndex = 0;
+      let newsAutoPaused = false;
+
+      function startNewsAutoScroll() {
+        stopNewsAutoScroll();
+        newsAutoTimer = setInterval(() => {
+          if (newsAutoPaused) return;
+
+          const container = document.getElementById('news-scroll-container');
+          const items = Array.from(document.querySelectorAll('#news-list .news-item'));
+          if (!container || items.length === 0) return;
+
+          newsAutoIndex = (newsAutoIndex + 1) % items.length;
+          const target = items[newsAutoIndex];
+
+          // 滚到目标条目位置
+          container.scrollTo({
+            top: target.offsetTop - 10,
+            behavior: 'smooth'
+          });
+        }, 3000);
+      }
+
+      function stopNewsAutoScroll() {
+        if (newsAutoTimer) {
+          clearInterval(newsAutoTimer);
+          newsAutoTimer = null;
+        }
+      }
+
+      function pauseNewsAutoScroll() {
+        newsAutoPaused = true;
+      }
+
+      function resumeNewsAutoScroll() {
+        newsAutoPaused = false;
+      }
+
+      // 根据当前滚动位置，计算最接近的条目作为 newsAutoIndex（避免手动滚动后跳来跳去）
+      function syncAutoIndexWithScroll() {
+        const container = document.getElementById('news-scroll-container');
+        const items = Array.from(document.querySelectorAll('#news-list .news-item'));
+        if (!container || items.length === 0) return;
+
+        const currentTop = container.scrollTop + 15;
+        let closestIdx = 0;
+        let closestDist = Infinity;
+
+        items.forEach((el, idx) => {
+          const dist = Math.abs(el.offsetTop - currentTop);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestIdx = idx;
+          }
+        });
+
+        newsAutoIndex = closestIdx;
+      }
+
       // 加载并显示新闻列表
       async function loadNews() {
         try {
@@ -115,13 +176,14 @@ export const USCGCCPage = `
           const newsList = document.getElementById('news-list');
           if (!data || data.length === 0) {
             newsList.innerHTML = '<div style="font-size: 0.7rem; color: #94a3b8; text-align: center;">暂无动态新闻...</div>';
+            stopNewsAutoScroll();
             return;
           }
 
           newsList.innerHTML = data.map(news => {
             // ✅ 把富文本HTML转成纯文本，用于列表预览（避免截断HTML标签导致显示异常）
             const plainText = news.content
-              ? news.content.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+              ? news.content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
               : '';
             const preview = plainText
               ? plainText.substring(0, 40) + (plainText.length > 40 ? '...' : '')
@@ -136,23 +198,9 @@ export const USCGCCPage = `
             \`;
           }).join('');
 
-          // 添加点击事件
-          document.querySelectorAll('.news-item').forEach(item => {
-            item.addEventListener('click', async () => {
-              const newsId = item.getAttribute('data-id');
-              await showNewsModal(newsId);
-            });
-            item.addEventListener('mouseenter', function() {
-              this.style.background = 'rgba(56, 189, 248, 0.1)';
-              this.style.borderRadius = '8px';
-              this.style.padding = '8px';
-            });
-            item.addEventListener('mouseleave', function() {
-              this.style.background = 'transparent';
-              this.style.padding = '0';
-              this.style.paddingBottom = '8px';
-            });
-          });
+          // ✅ 重新加载后，重置轮播索引并启动轮播
+          newsAutoIndex = 0;
+          startNewsAutoScroll();
         } catch (error) {
           console.error('加载新闻失败:', error);
         }
@@ -174,29 +222,49 @@ export const USCGCCPage = `
           // ✅ 直接渲染富文本HTML（支持换行、加粗、图片等）
           document.getElementById('modal-content').innerHTML = data.content || '';
           document.getElementById('news-modal').style.display = 'flex';
+
+          // ✅ 打开弹窗时暂停自动滚动
+          pauseNewsAutoScroll();
         } catch (error) {
           console.error('加载新闻详情失败:', error);
         }
       }
 
+      // ====== ✅ 关键修复：事件委托（保证永远可点击弹窗） ======
+      const newsListEl = document.getElementById('news-list');
+      if (newsListEl) {
+        newsListEl.addEventListener('click', async (e) => {
+          const targetItem = e.target.closest('.news-item');
+          if (!targetItem) return;
+
+          const newsId = targetItem.getAttribute('data-id');
+          if (!newsId) return;
+
+          await showNewsModal(newsId);
+        });
+
+        // hover 高亮（事件委托写法）
+        newsListEl.addEventListener('mouseover', (e) => {
+          const item = e.target.closest('.news-item');
+          if (!item) return;
+          item.style.background = 'rgba(56, 189, 248, 0.1)';
+          item.style.borderRadius = '8px';
+          item.style.padding = '8px';
+        });
+
+        newsListEl.addEventListener('mouseout', (e) => {
+          const item = e.target.closest('.news-item');
+          if (!item) return;
+          // 只有真正离开该 item 时才复原
+          const related = e.relatedTarget;
+          if (related && item.contains(related)) return;
+
+          item.style.background = 'transparent';
+          item.style.padding = '0';
+          item.style.paddingBottom = '8px';
+        });
+      }
+
       // 关闭弹窗
       document.getElementById('close-modal').addEventListener('click', () => {
-        document.getElementById('news-modal').style.display = 'none';
-      });
-
-      // 点击背景关闭弹窗
-      document.getElementById('news-modal').addEventListener('click', (e) => {
-        if (e.target.id === 'news-modal') {
-          document.getElementById('news-modal').style.display = 'none';
-        }
-      });
-
-      // LOGO点击事件 - 跳转到管理后台
-      document.getElementById('logo-img').addEventListener('click', () => {
-        window.location.href = '/admin-simple.html';
-      });
-
-      // 页面加载时加载新闻
-      loadNews();
-    </script>
-`;  
+        document.getElement
