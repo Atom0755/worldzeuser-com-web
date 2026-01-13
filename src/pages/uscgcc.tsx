@@ -119,7 +119,14 @@ export const USCGCCPage = `
           }
 
           newsList.innerHTML = data.map(news => {
-            const preview = news.content ? news.content.substring(0, 40) + (news.content.length > 40 ? '...' : '') : '';
+            // ✅ 把富文本HTML转成纯文本，用于列表预览（避免截断HTML标签导致显示异常）
+            const plainText = news.content
+              ? news.content.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+              : '';
+            const preview = plainText
+              ? plainText.substring(0, 40) + (plainText.length > 40 ? '...' : '')
+              : '';
+
             return \`
               <div class="news-item" data-id="\${news.id}" style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; cursor: pointer; transition: all 0.2s;">
                 <div style="font-weight: bold; margin-bottom: 3px;">\${news.title}</div>
@@ -164,7 +171,8 @@ export const USCGCCPage = `
 
           document.getElementById('modal-title').textContent = data.title;
           document.getElementById('modal-date').textContent = data.publish_date || '';
-          document.getElementById('modal-content').textContent = data.content || '';
+          // ✅ 直接渲染富文本HTML（支持换行、加粗、图片等）
+          document.getElementById('modal-content').innerHTML = data.content || '';
           document.getElementById('news-modal').style.display = 'flex';
         } catch (error) {
           console.error('加载新闻详情失败:', error);
@@ -191,4 +199,4 @@ export const USCGCCPage = `
       // 页面加载时加载新闻
       loadNews();
     </script>
-`;
+`;  
