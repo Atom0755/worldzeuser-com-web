@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -7,7 +7,7 @@
     
     <!-- 引入Quill富文本编辑器 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>  
     
     <style>
         * {
@@ -680,6 +680,125 @@
                 flex-direction: column;
             }
         }
+
+        /* ========================= */
+        /* ✅ 新增：垃圾箱与确认弹窗样式 */
+        /* ========================= */
+        .trash-btn {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .trash-btn:hover {
+            background: #0b1220;
+            transform: translateY(-2px);
+        }
+        .trash-badge {
+            background: #e74c3c;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 2px 8px;
+            line-height: 1;
+        }
+
+        .confirm-modal-box {
+            background: white;
+            border-radius: 14px;
+            width: 92%;
+            max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .confirm-modal-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .confirm-modal-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .confirm-modal-body {
+            padding: 18px 20px;
+            color: #333;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .confirm-modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .confirm-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: auto;
+            color: #666;
+            font-size: 13px;
+        }
+        .confirm-checkbox input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .trash-list-toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .trash-toolbar-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+        .trash-restore-all {
+            background: #27ae60;
+            color: white;
+        }
+        .trash-delete-selected {
+            background: #e74c3c;
+            color: white;
+        }
+        .trash-empty {
+            background: #111827;
+            color: white;
+        }
+        .trash-select-all {
+            background: #3498db;
+            color: white;
+        }
+        .hidden-badge {
+            background: #6b7280;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -689,6 +808,10 @@
             USCGCC 管理后台
         </h1>
         <div class="user-info">
+            <!-- ✅ 新增：垃圾箱按钮 -->
+            <button class="trash-btn" onclick="openTrashModal()">
+                🗑️ 垃圾箱 <span class="trash-badge" id="trashCountBadge" style="display:none;">0</span>
+            </button>
             <span class="user-email" id="userEmail">加载中...</span>
             <button class="logout-btn" onclick="logout()">退出</button>
         </div>
@@ -891,6 +1014,53 @@
         </div>
     </div>
 
+    <!-- ✅ 新增：删除确认弹窗（可选择不再提示） -->
+    <div id="confirm-modal" class="modal">
+        <div class="confirm-modal-box">
+            <div class="confirm-modal-header">
+                <div class="confirm-modal-title" id="confirmTitle">确认操作</div>
+                <button class="modal-close" onclick="closeConfirmModal()">×</button>
+            </div>
+            <div class="confirm-modal-body" id="confirmMessage">确定要继续吗？</div>
+            <div class="confirm-modal-footer">
+                <label class="confirm-checkbox">
+                    <input type="checkbox" id="dontAskAgain">
+                    不再提示
+                </label>
+                <button class="btn-cancel" onclick="closeConfirmModal()">取消</button>
+                <button class="btn-submit" id="confirmOkBtn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ 新增：垃圾箱弹窗 -->
+    <div id="trash-modal" class="modal">
+        <div class="modal-content" style="max-width: 980px;">
+            <div class="modal-header">
+                <div class="modal-title">🗑️ 垃圾箱</div>
+                <button class="modal-close" onclick="closeTrashModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="trash-list-toolbar">
+                    <button class="trash-toolbar-btn trash-select-all" onclick="selectAllTrash()">全选</button>
+                    <button class="trash-toolbar-btn trash-restore-all" onclick="restoreAllTrash()">全部恢复</button>
+                    <button class="trash-toolbar-btn trash-delete-selected" onclick="deleteSelectedFromTrash()">删除选中</button>
+                    <button class="trash-toolbar-btn trash-empty" onclick="emptyTrash()">清空垃圾箱</button>
+                </div>
+
+                <div id="trashList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🗑️</div>
+                        <p>垃圾箱为空</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeTrashModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -905,6 +1075,9 @@
         // 新增：初始化富文本编辑器
         let quill = null;
         let coverImageData = null;
+
+        // ✅ 新增：确认弹窗回调
+        let __confirmResolve = null;
 
         function initQuillEditor() {
             quill = new Quill('#editor-container', {
@@ -1003,6 +1176,306 @@
             `;
         };
 
+        // ✅ 新增：打开确认弹窗（支持不再提示）
+        window.openConfirmModal = function({ title, message, skipKey }) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirmTitle').textContent = title || '确认操作';
+            document.getElementById('confirmMessage').textContent = message || '确定要继续吗？';
+            document.getElementById('dontAskAgain').checked = false;
+
+            const okBtn = document.getElementById('confirmOkBtn');
+
+            // 清理旧事件
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+            modal.style.display = 'flex';
+
+            return new Promise((resolve) => {
+                __confirmResolve = resolve;
+
+                newOkBtn.addEventListener('click', () => {
+                    const dontAsk = document.getElementById('dontAskAgain').checked;
+                    if (dontAsk && skipKey) {
+                        localStorage.setItem(skipKey, '1');
+                    }
+                    modal.style.display = 'none';
+                    resolve(true);
+                });
+
+                // 点击遮罩关闭（当作取消）
+                modal.addEventListener('click', function handler(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        modal.removeEventListener('click', handler);
+                        resolve(false);
+                    }
+                }, { once: true });
+            });
+        };
+
+        window.closeConfirmModal = function() {
+            document.getElementById('confirm-modal').style.display = 'none';
+            if (__confirmResolve) {
+                __confirmResolve(false);
+                __confirmResolve = null;
+            }
+        };
+
+        // ✅ 新增：垃圾箱相关（使用 status='trash'；隐藏使用 status='hidden'）
+        async function refreshTrashBadge() {
+            try {
+                const { data, error } = await supabase
+                    .from('news')
+                    .select('id')
+                    .eq('tenant_slug', 'uscgcc')
+                    .eq('status', 'trash');
+
+                if (error && error.code !== 'PGRST116') throw error;
+
+                const count = data?.length || 0;
+                const badge = document.getElementById('trashCountBadge');
+                if (count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = String(count);
+                } else {
+                    badge.style.display = 'none';
+                    badge.textContent = '0';
+                }
+            } catch (e) {
+                console.error('刷新垃圾箱数量失败:', e);
+            }
+        }
+
+        window.openTrashModal = async function() {
+            document.getElementById('trash-modal').style.display = 'flex';
+            await loadTrash();
+        };
+
+        window.closeTrashModal = function() {
+            document.getElementById('trash-modal').style.display = 'none';
+        };
+
+        window.selectAllTrash = function() {
+            const checkboxes = document.querySelectorAll('.trash-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        };
+
+        window.restoreAllTrash = async function() {
+            try {
+                const { data, error } = await supabase
+                    .from('news')
+                    .select('id')
+                    .eq('tenant_slug', 'uscgcc')
+                    .eq('status', 'trash');
+
+                if (error && error.code !== 'PGRST116') throw error;
+
+                const ids = (data || []).map(x => x.id);
+                if (ids.length === 0) {
+                    alert('垃圾箱为空');
+                    return;
+                }
+
+                const { error: updErr } = await supabase
+                    .from('news')
+                    .update({ status: 'published' })
+                    .in('id', ids);
+
+                if (updErr) throw updErr;
+
+                alert('✅ 已全部恢复为“已发布”');
+                await loadNews();
+                await loadTrash();
+                await refreshTrashBadge();
+            } catch (e) {
+                console.error('全部恢复失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        };
+
+        window.restoreFromTrash = async function(id) {
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .update({ status: 'published' })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert('✅ 已恢复为“已发布”');
+                await loadNews();
+                await loadTrash();
+                await refreshTrashBadge();
+            } catch (e) {
+                console.error('恢复失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        };
+
+        window.deleteSelectedFromTrash = async function() {
+            const checkboxes = document.querySelectorAll('.trash-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要删除的内容');
+                return;
+            }
+            const ids = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+            await permanentlyDelete(ids);
+        };
+
+        window.emptyTrash = async function() {
+            try {
+                const { data, error } = await supabase
+                    .from('news')
+                    .select('id')
+                    .eq('tenant_slug', 'uscgcc')
+                    .eq('status', 'trash');
+
+                if (error && error.code !== 'PGRST116') throw error;
+
+                const ids = (data || []).map(x => x.id);
+                if (ids.length === 0) {
+                    alert('垃圾箱为空');
+                    return;
+                }
+
+                await permanentlyDelete(ids, { isEmptyAll: true });
+            } catch (e) {
+                console.error('清空垃圾箱失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        };
+
+        async function permanentlyDelete(ids, opts = {}) {
+            const skipKey = 'skipTrashDeleteConfirm';
+            const skip = localStorage.getItem(skipKey) === '1';
+
+            if (!skip) {
+                const ok = await openConfirmModal({
+                    title: '确认永久删除',
+                    message: opts.isEmptyAll
+                        ? `确定要清空垃圾箱吗？（将永久删除 ${ids.length} 条，无法恢复）`
+                        : `确定要永久删除选中的 ${ids.length} 条吗？（无法恢复）`,
+                    skipKey
+                });
+                if (!ok) return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .delete()
+                    .in('id', ids);
+
+                if (error) throw error;
+
+                alert('✅ 已永久删除');
+                await loadTrash();
+                await refreshTrashBadge();
+            } catch (e) {
+                console.error('永久删除失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        }
+
+        async function moveToTrash(newsId) {
+            const skipKey = 'skipMoveToTrashConfirm';
+            const skip = localStorage.getItem(skipKey) === '1';
+
+            if (!skip) {
+                const ok = await openConfirmModal({
+                    title: '确认删除',
+                    message: '确定要把这条新闻移到垃圾箱吗？（访客将看不到，可在垃圾箱恢复）',
+                    skipKey
+                });
+                if (!ok) return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .update({ status: 'trash' })
+                    .eq('id', newsId);
+
+                if (error) throw error;
+
+                alert('✅ 已移到垃圾箱');
+                await loadNews();
+                await refreshTrashBadge();
+            } catch (e) {
+                console.error('移到垃圾箱失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        }
+
+        window.toggleHideNews = async function(newsId, nextStatus) {
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .update({ status: nextStatus })
+                    .eq('id', newsId);
+
+                if (error) throw error;
+
+                if (nextStatus === 'hidden') {
+                    alert('✅ 已隐藏（访客将看不到）');
+                } else {
+                    alert('✅ 已显示（访客可见）');
+                }
+                await loadNews();
+            } catch (e) {
+                console.error('隐藏/显示失败:', e);
+                alert('❌ 操作失败：' + e.message);
+            }
+        };
+
+        async function loadTrash() {
+            try {
+                const { data, error } = await supabase
+                    .from('news')
+                    .select('*')
+                    .eq('tenant_slug', 'uscgcc')
+                    .eq('status', 'trash')
+                    .order('created_at', { ascending: false });
+
+                if (error && error.code !== 'PGRST116') throw error;
+
+                const listDiv = document.getElementById('trashList');
+                if (data && data.length > 0) {
+                    listDiv.innerHTML = data.map(item => `
+                        <div class="item-card">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" class="trash-checkbox" data-id="${item.id}">
+                                <div style="flex: 1;">
+                                    ${item.cover_image ? `<img src="${item.cover_image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; float: left; margin-right: 15px;">` : ''}
+                                    <div class="item-header">
+                                        <div class="item-title">${item.title}</div>
+                                        <div class="item-category">垃圾箱</div>
+                                    </div>
+                                    <div class="item-meta" style="margin-bottom: 8px;">
+                                        <span>📅 ${item.publish_date || '未设置日期'}</span>
+                                    </div>
+                                    <div class="item-content">${(item.content || '').toString().substring(0, 150)}...</div>
+                                    <div class="item-meta">
+                                        <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                                        <div class="item-actions">
+                                            <button class="action-btn approve-btn" onclick="restoreFromTrash('${item.id}')">恢复</button>
+                                            <button class="action-btn reject-btn" onclick="(async()=>{ await permanentlyDelete(['${item.id}']) })()">永久删除</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🗑️</div><p>垃圾箱为空</p></div>';
+                }
+            } catch (e) {
+                console.error('加载垃圾箱失败:', e);
+            }
+        }
+
         // 检查认证
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -1017,6 +1490,7 @@
             loadKnowledgeBase();
             loadNews();
             loadConversations();
+            refreshTrashBadge();
         }
 
         // 加载知识库
@@ -1131,39 +1605,61 @@
                     draftListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
                 }
 
-                // 加载已发布新闻
-                const { data: publishedNews, error: publishedError } = await supabase
+                // ✅ 修改：已发布列表同时加载 published + hidden（用于“隐藏/显示”管理），不加载 trash
+                const { data: publishedAndHidden, error: publishedError } = await supabase
                     .from('news')
                     .select('*')
-                    .eq('status', 'published')
                     .eq('tenant_slug', 'uscgcc') // ✅ 添加这一行
+                    .in('status', ['published', 'hidden'])
                     .order('created_at', { ascending: false });
 
                 if (publishedError && publishedError.code !== 'PGRST116') throw publishedError;
-                console.log('✅ 已发布新闻数据:', publishedNews);// 添加日志
-                document.getElementById('approvedNewsCount').textContent = publishedNews?.length || 0;
+                console.log('✅ 已发布/隐藏新闻数据:', publishedAndHidden);
+
+                // ✅ 统计“已发布新闻”只统计 status='published'
+                const publishedCount = (publishedAndHidden || []).filter(x => x.status === 'published').length;
+                document.getElementById('approvedNewsCount').textContent = publishedCount || 0;
                 
                 const publishedListDiv = document.getElementById('publishedNewsList');
-                if (publishedNews && publishedNews.length > 0) {
-                    publishedListDiv.innerHTML = publishedNews.map(item => `
-                        <div class="item-card">
-                            ${item.cover_image ? `<img src="${item.cover_image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; float: left; margin-right: 15px;">` : ''}
-                            <div class="item-header">
-                                <div class="item-title">${item.title}</div>
-                                <div class="item-category">${item.in_knowledge_base ? '✓ 知识库' : '未入库'}</div>
+                if (publishedAndHidden && publishedAndHidden.length > 0) {
+                    publishedListDiv.innerHTML = publishedAndHidden.map(item => {
+                        const isHidden = item.status === 'hidden';
+                        return `
+                            <div class="item-card">
+                                ${item.cover_image ? `<img src="${item.cover_image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; float: left; margin-right: 15px;">` : ''}
+                                <div class="item-header">
+                                    <div class="item-title">
+                                        ${item.title}
+                                        ${isHidden ? `<span class="hidden-badge">已隐藏</span>` : ``}
+                                    </div>
+                                    <div class="item-category">${item.in_knowledge_base ? '✓ 知识库' : '未入库'}</div>
+                                </div>
+                                <div class="item-meta" style="margin-bottom: 8px;">
+                                    <span>📅 ${item.publish_date || '未设置日期'}</span>
+                                </div>
+                                <div class="item-content">${item.content?.substring(0, 150)}...</div>
+                                <div class="item-meta">
+                                    <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                                    <!-- ✅ 新增：隐藏/删除按钮 -->
+                                    <div class="item-actions">
+                                        ${
+                                            isHidden
+                                            ? `<button class="action-btn edit-btn" onclick="toggleHideNews('${item.id}','published')">显示</button>`
+                                            : `<button class="action-btn edit-btn" onclick="toggleHideNews('${item.id}','hidden')">隐藏</button>`
+                                        }
+                                        <button class="action-btn delete-btn" onclick="(async()=>{ await (async function(){ await (async function(){ await (async function(){ await (async function(){ await moveToTrash('${item.id}'); })(); })(); })(); })(); })()">删除</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="item-meta" style="margin-bottom: 8px;">
-                                <span>📅 ${item.publish_date || '未设置日期'}</span>
-                            </div>
-                            <div class="item-content">${item.content?.substring(0, 150)}...</div>
-                            <div class="item-meta">
-                                <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
-                            </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 } else {
                     publishedListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无已发布的新闻</p></div>';
                 }
+
+                // ✅ 刷新垃圾箱数量徽标
+                refreshTrashBadge();
+
             } catch (error) {
                 console.error('加载新闻失败:', error);
             }
@@ -1493,6 +1989,20 @@
         document.getElementById('publish-modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closePublishModal();
+            }
+        });
+
+        // ✅ 新增：点击弹窗外部关闭（垃圾箱）
+        document.getElementById('trash-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTrashModal();
+            }
+        });
+
+        // ✅ 新增：点击弹窗外部关闭（确认）
+        document.getElementById('confirm-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmModal();
             }
         });
 
