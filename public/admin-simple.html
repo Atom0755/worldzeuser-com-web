@@ -384,6 +384,16 @@
             color: white;
         }
 
+        /* 新增：发布动态按钮样式 */
+        .publish-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .publish-btn:hover {
+            background: #5568d3;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -394,6 +404,102 @@
             font-size: 60px;
             margin-bottom: 20px;
             opacity: 0.5;
+        }
+
+        /* 新增：弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-cancel {
+            background: #6b7280;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-cancel:hover {
+            background: #4b5563;
+        }
+
+        .btn-submit {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: #5568d3;
         }
 
         /* AI对话特殊样式 */
@@ -549,7 +655,9 @@
                     </div>
                 </div>
 
+                <!-- 修改：在左侧添加"发布动态"按钮 -->
                 <div class="bulk-actions">
+                    <button class="bulk-btn publish-btn" onclick="openPublishModal()">➕ 发布动态</button>
                     <button class="bulk-btn select-all" onclick="selectAllNews()">全选</button>
                     <button class="bulk-btn bulk-approve" onclick="bulkApproveNews()">批量通过</button>
                     <button class="bulk-btn bulk-reject" onclick="bulkRejectNews()">批量拒绝</button>
@@ -561,6 +669,17 @@
                         <div class="empty-state">
                             <div class="empty-state-icon">📭</div>
                             <p>暂无待审核的新闻</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 新增：已发布新闻区域 -->
+                <div class="items-list" style="margin-top: 40px;">
+                    <h3>✅ 已发布新闻</h3>
+                    <div id="publishedNewsList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>暂无已发布的新闻</p>
                         </div>
                     </div>
                 </div>
@@ -596,6 +715,36 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：发布动态弹窗 -->
+    <div id="publish-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">发布新动态</div>
+                <button class="modal-close" onclick="closePublishModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="publish-form">
+                    <div class="form-group">
+                        <label>标题 <span>*</span></label>
+                        <input type="text" id="news-title" placeholder="请输入新闻标题" required>
+                    </div>
+                    <div class="form-group">
+                        <label>发布日期 <span>*</span></label>
+                        <input type="date" id="news-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>内容 <span>*</span></label>
+                        <textarea id="news-content" placeholder="请输入新闻全文内容" required style="min-height: 200px;"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closePublishModal()">取消</button>
+                <button class="btn-submit" onclick="submitNews()">发布</button>
             </div>
         </div>
     </div>
@@ -693,30 +842,32 @@
             }
         };
 
-        // 加载新闻
+        // 修改：加载新闻（分待审核和已发布）
         window.loadNews = async function() {
             try {
-                // 这里假设你有一个news表
-                // 如果没有，需要创建
-                const { data, error } = await supabase
+                // 加载待审核新闻
+                const { data: pendingNews, error: pendingError } = await supabase
                     .from('news')
                     .select('*')
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false });
 
-                if (error && error.code !== 'PGRST116') throw error;
+                if (pendingError && pendingError.code !== 'PGRST116') throw pendingError;
 
-                document.getElementById('newsCount').textContent = data?.length || 0;
+                document.getElementById('newsCount').textContent = pendingNews?.length || 0;
                 
-                const listDiv = document.getElementById('newsList');
-                if (data && data.length > 0) {
-                    listDiv.innerHTML = data.map(item => `
+                const pendingListDiv = document.getElementById('newsList');
+                if (pendingNews && pendingNews.length > 0) {
+                    pendingListDiv.innerHTML = pendingNews.map(item => `
                         <div class="item-card">
                             <div class="checkbox-wrapper">
-                                <input type="checkbox" class="news-checkbox" data-id="${item.id}">
+                                <input type="checkbox" class="news-checkbox" data-id="${item.id}" checked>
                                 <div style="flex: 1;">
                                     <div class="item-header">
                                         <div class="item-title">${item.title}</div>
+                                    </div>
+                                    <div class="item-meta" style="margin-bottom: 8px;">
+                                        <span>📅 ${item.publish_date || '未设置日期'}</span>
                                     </div>
                                     <div class="item-content">${item.content?.substring(0, 150)}...</div>
                                     <div class="item-meta">
@@ -731,11 +882,204 @@
                         </div>
                     `).join('');
                 } else {
-                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
+                    pendingListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
+                }
+
+                // 新增：加载已发布新闻
+                const { data: publishedNews, error: publishedError } = await supabase
+                    .from('news')
+                    .select('*')
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: false });
+
+                if (publishedError && publishedError.code !== 'PGRST116') throw publishedError;
+
+                document.getElementById('approvedNewsCount').textContent = publishedNews?.length || 0;
+                
+                const publishedListDiv = document.getElementById('publishedNewsList');
+                if (publishedNews && publishedNews.length > 0) {
+                    publishedListDiv.innerHTML = publishedNews.map(item => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div class="item-title">${item.title}</div>
+                                <div class="item-category">${item.in_knowledge_base ? '✓ 知识库' : '未入库'}</div>
+                            </div>
+                            <div class="item-meta" style="margin-bottom: 8px;">
+                                <span>📅 ${item.publish_date || '未设置日期'}</span>
+                            </div>
+                            <div class="item-content">${item.content?.substring(0, 150)}...</div>
+                            <div class="item-meta">
+                                <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    publishedListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无已发布的新闻</p></div>';
                 }
             } catch (error) {
                 console.error('加载新闻失败:', error);
             }
+        };
+
+        // 新增：打开发布弹窗
+        window.openPublishModal = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('news-date').value = today;
+            document.getElementById('publish-modal').style.display = 'flex';
+        };
+
+        // 新增：关闭发布弹窗
+        window.closePublishModal = function() {
+            document.getElementById('publish-modal').style.display = 'none';
+            document.getElementById('publish-form').reset();
+        };
+
+        // 新增：提交新闻
+        window.submitNews = async function() {
+            const title = document.getElementById('news-title').value.trim();
+            const date = document.getElementById('news-date').value;
+            const content = document.getElementById('news-content').value.trim();
+
+            if (!title || !date || !content) {
+                alert('请填写完整的新闻信息');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .insert([{
+                        title: title,
+                        publish_date: date,
+                        content: content,
+                        status: 'pending',
+                        in_knowledge_base: false
+                    }]);
+
+                if (error) throw error;
+
+                alert('✅ 新闻发布成功！已进入待审核列表。');
+                closePublishModal();
+                loadNews();
+            } catch (error) {
+                console.error('发布新闻失败:', error);
+                alert('❌ 发布失败：' + error.message);
+            }
+        };
+
+        // 新增：通过新闻（单个）
+        window.approveNews = async function(newsId) {
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .update({ 
+                        status: 'published',
+                        in_knowledge_base: true
+                    })
+                    .eq('id', newsId);
+
+                if (error) throw error;
+
+                alert('✅ 新闻已通过并加入知识库！');
+                loadNews();
+            } catch (error) {
+                console.error('通过失败:', error);
+                alert('❌ 操作失败：' + error.message);
+            }
+        };
+
+        // 新增：拒绝新闻（单个）
+        window.rejectNews = async function(newsId) {
+            try {
+                const { error } = await supabase
+                    .from('news')
+                    .update({ 
+                        status: 'published',
+                        in_knowledge_base: false
+                    })
+                    .eq('id', newsId);
+
+                if (error) throw error;
+
+                alert('✅ 新闻已发布但未加入知识库。');
+                loadNews();
+            } catch (error) {
+                console.error('拒绝失败:', error);
+                alert('❌ 操作失败：' + error.message);
+            }
+        };
+
+        // 修改：批量通过新闻
+        window.bulkApproveNews = async function() {
+            const checkboxes = document.querySelectorAll('.news-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要通过的新闻');
+                return;
+            }
+
+            if (!confirm(`确定要通过选中的 ${checkboxes.length} 条新闻吗？将被加入知识库。`)) {
+                return;
+            }
+
+            try {
+                const ids = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+                
+                const { error } = await supabase
+                    .from('news')
+                    .update({ 
+                        status: 'published',
+                        in_knowledge_base: true
+                    })
+                    .in('id', ids);
+
+                if (error) throw error;
+
+                alert('✅ 批量通过成功！');
+                loadNews();
+            } catch (error) {
+                console.error('批量通过失败:', error);
+                alert('❌ 批量通过失败：' + error.message);
+            }
+        };
+
+        // 修改：批量拒绝新闻
+        window.bulkRejectNews = async function() {
+            const checkboxes = document.querySelectorAll('.news-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要拒绝的新闻');
+                return;
+            }
+
+            if (!confirm(`确定要拒绝选中的 ${checkboxes.length} 条新闻吗？将不会加入知识库。`)) {
+                return;
+            }
+
+            try {
+                const ids = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+                
+                const { error } = await supabase
+                    .from('news')
+                    .update({ 
+                        status: 'published',
+                        in_knowledge_base: false
+                    })
+                    .in('id', ids);
+
+                if (error) throw error;
+
+                alert('✅ 批量拒绝成功！');
+                loadNews();
+            } catch (error) {
+                console.error('批量拒绝失败:', error);
+                alert('❌ 批量拒绝失败：' + error.message);
+            }
+        };
+
+        // 全选新闻
+        window.selectAllNews = function() {
+            const checkboxes = document.querySelectorAll('.news-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
         };
 
         // 加载AI对话
@@ -755,7 +1099,6 @@
                 if (data && data.length > 0) {
                     listDiv.innerHTML = data.map(conv => {
                         const messages = conv.messages || [];
-                        const lastMessage = messages[messages.length - 1];
                         
                         return `
                             <div class="conversation-item">
@@ -878,6 +1221,13 @@
             await supabase.auth.signOut();
             window.location.href = '/';
         };
+
+        // 点击弹窗外部关闭
+        document.getElementById('publish-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePublishModal();
+            }
+        });
 
         // 初始化
         checkAuth();
