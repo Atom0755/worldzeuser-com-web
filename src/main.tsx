@@ -128,7 +128,65 @@ function initUSCGCCPage() {
       setTimeout(initNews, 3000)
       return
     }
-
+  
+    // 只绑定一次关闭事件，避免重复绑定
+    ;(window as any).__newsModalBound ||= false
+    if (!(window as any).__newsModalBound) {
+      const closeBtn = document.getElementById('close-modal')
+      const modal = document.getElementById('news-modal')
+  
+      if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+          ;(modal as HTMLElement).style.display = 'none'
+        })
+  
+        modal.addEventListener('click', (e) => {
+          if ((e.target as HTMLElement).id === 'news-modal') {
+            ;(modal as HTMLElement).style.display = 'none'
+          }
+        })
+  
+        ;(window as any).__newsModalBound = true
+      }
+    }
+  
+    function firstLinePreview(content: string) {
+      if (!content) return ''
+      // 去掉首尾空白，把换行切第一行
+      const line = content.replace(/\r/g, '').trim().split('\n').find(Boolean) || ''
+      return line.length > 40 ? line.slice(0, 40) + '...' : line
+    }
+  
+    async function showNewsModal(newsId: string) {
+      try {
+        const { data, error } = await supabase
+          .from('news')
+          .select('id,title,content,publish_date,created_at')
+          .eq('id', newsId)
+          .single()
+  
+        if (error) throw error
+        if (!data) return
+  
+        const modal = document.getElementById('news-modal') as HTMLElement | null
+        const titleEl = document.getElementById('modal-title')
+        const dateEl = document.getElementById('modal-date')
+        const contentEl = document.getElementById('modal-content')
+  
+        if (!modal || !titleEl || !dateEl || !contentEl) {
+          console.warn('未找到新闻弹窗 DOM（news-modal/modal-title/modal-date/modal-content）')
+          return
+        }
+  
+        titleEl.textContent = data.title || ''
+        dateEl.textContent = data.publish_date || ''
+        contentEl.textContent = data.content || ''
+        modal.style.display = 'flex'
+      } catch (e) {
+        console.error('❌ 加载新闻详情失败', e)
+      }
+    }
+  
     async function loadNews() {
       try {
         const newsList = document.getElementById('news-list')
@@ -136,7 +194,8 @@ function initUSCGCCPage() {
           console.warn('❌ 首页未找到 #news-list')
           return
         }
-
+  
+        // ✅ 首页只显示：本商会 + 已发布
         const { data, error } = await supabase
           .from('news')
           .select('id,title,content,publish_date,created_at,tenant_slug,status')
@@ -144,31 +203,60 @@ function initUSCGCCPage() {
           .eq('status', 'published')
           .order('created_at', { ascending: false })
           .limit(4)
-
+  
         if (error) throw error
-
+  
         if (!data || data.length === 0) {
-          newsList.innerHTML = '<div style="font-size:12px;color:#94a3b8;">暂无商会动态</div>'
+          newsList.innerHTML =
+            '<div style="font-size:12px;color:#94a3b8;text-align:center;">暂无动态新闻...</div>'
           return
         }
-
+  
+        // ✅ 渲染：标题 + 日期 + 正文第一行预览
         newsList.innerHTML = data
-          .map(
-            (n: any) => `
-              <div style="margin-bottom:8px;cursor:pointer;">
-                <div style="font-weight:600;font-size:12px;">${n.title}</div>
-                <div style="font-size:11px;color:#94a3b8;">${n.publish_date ?? ''}</div>
+          .map((n: any) => {
+            const preview = firstLinePreview(n.content || '')
+            return `
+              <div class="news-item"
+                   data-id="${n.id}"
+                   style="font-size:12px;color:#e2e8f0;margin-bottom:10px;
+                          border-bottom:1px solid rgba(255,255,255,0.05);
+                          padding-bottom:10px;cursor:pointer;">
+                <div style="font-weight:700;margin-bottom:4px;">${n.title || ''}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">${n.publish_date || ''}</div>
+                <div style="padding-left:1em;color:#cbd5e1;font-size:11px;line-height:1.5;">
+                  ${preview}
+                </div>
               </div>
             `
-          )
+          })
           .join('')
+  
+        // ✅ 绑定点击事件：弹全文
+        document.querySelectorAll('.news-item').forEach((el) => {
+          el.addEventListener('click', async () => {
+            const id = (el as HTMLElement).getAttribute('data-id')
+            if (id) await showNewsModal(id)
+          })
+          el.addEventListener('mouseenter', function () {
+            ;(this as HTMLElement).style.background = 'rgba(56,189,248,0.10)'
+            ;(this as HTMLElement).style.borderRadius = '8px'
+            ;(this as HTMLElement).style.padding = '8px'
+          })
+          el.addEventListener('mouseleave', function () {
+            ;(this as HTMLElement).style.background = 'transparent'
+            ;(this as HTMLElement).style.padding = '0'
+            ;(this as HTMLElement).style.paddingBottom = '10px'
+          })
+        })
       } catch (e) {
         console.error('❌ 加载新闻失败', e)
       }
     }
-
+  
     loadNews()
   }
+  
 
   function initChat() {
     const supabase = (window as any).supabase
