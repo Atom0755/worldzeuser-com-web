@@ -234,20 +234,21 @@ function initUSCGCCPage() {
   
         // ✅ 绑定点击事件：弹全文
         document.querySelectorAll('.news-item').forEach((el) => {
-          el.addEventListener('click', async () => {
-            const id = (el as HTMLElement).getAttribute('data-id')
-            if (id) await showNewsModal(id)
-          })
-          el.addEventListener('mouseenter', function () {
-            ;(this as HTMLElement).style.background = 'rgba(56,189,248,0.10)'
-            ;(this as HTMLElement).style.borderRadius = '8px'
-            ;(this as HTMLElement).style.padding = '8px'
-          })
-          el.addEventListener('mouseleave', function () {
-            ;(this as HTMLElement).style.background = 'transparent'
-            ;(this as HTMLElement).style.padding = '0'
-            ;(this as HTMLElement).style.paddingBottom = '10px'
-          })
+          const item = el as HTMLElement
+
+item.addEventListener('mouseenter', () => {
+  item.style.background = 'rgba(56,189,248,0.10)'
+  item.style.borderRadius = '8px'
+  item.style.padding = '8px'
+})
+
+item.addEventListener('mouseleave', () => {
+  item.style.background = 'transparent'
+  item.style.borderRadius = '0'
+  item.style.padding = '0'
+  item.style.paddingBottom = '10px'
+})
+
         })
       } catch (e) {
         console.error('❌ 加载新闻失败', e)
