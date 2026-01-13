@@ -17,11 +17,11 @@ if (root) {
   if (hostname.startsWith('uscgcc.') || pathname.startsWith('/a/uscgcc')) {
     root.innerHTML = USCGCCPage
     requestAnimationFrame(() => {
-      initUSCGCCPage();
+      initUSCGCCPage()
       setTimeout(() => {
-        initAdminLogin();
-      }, 100);
-    });
+        initAdminLogin()
+      }, 100)
+    })
   } else if (hostname.startsWith('usclgcc.') || pathname.startsWith('/a/usclgcc')) {
     root.innerHTML = USCLGCCPage
   } else if (hostname.startsWith('ilausa.') || pathname.startsWith('/a/ilausa')) {
@@ -118,63 +118,66 @@ if (root) {
 }
 
 function initUSCGCCPage() {
-  function initChat() {
-    function initNews() {
-      const supabase = (window as any).supabase
-      if (!supabase) {
-        console.error('Supabase 未初始化，3秒后重试加载新闻...')
-        setTimeout(initNews, 3000)
-        return
-      }
-  
-      async function loadNews() {
-        try {
-          const newsList = document.getElementById('news-list')
-          if (!newsList) {
-            console.warn('❌ 首页未找到 #news-list')
-            return
-          }
-  
-          const { data, error } = await supabase
-            .from('news')
-            .select('id,title,content,publish_date,created_at,tenant_slug,status')
-            .eq('tenant_slug', 'uscgcc')
-            .eq('status', 'published')
-            .order('created_at', { ascending: false })
-            .limit(4)
-  
-          if (error) throw error
-  
-          if (!data || data.length === 0) {
-            newsList.innerHTML =
-              '<div style="font-size:12px;color:#94a3b8;">暂无商会动态</div>'
-            return
-          }
-  
-          newsList.innerHTML = data
-            .map(
-              (n: any) => `
+  // =========================
+  // ✅ 只改这里：把 initNews 提到 initChat 外面（同级），避免 TS 找不到 initNews
+  // =========================
+  function initNews() {
+    const supabase = (window as any).supabase
+    if (!supabase) {
+      console.error('Supabase 未初始化，3秒后重试加载新闻...')
+      setTimeout(initNews, 3000)
+      return
+    }
+
+    async function loadNews() {
+      try {
+        const newsList = document.getElementById('news-list')
+        if (!newsList) {
+          console.warn('❌ 首页未找到 #news-list')
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('news')
+          .select('id,title,content,publish_date,created_at,tenant_slug,status')
+          .eq('tenant_slug', 'uscgcc')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .limit(4)
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+          newsList.innerHTML = '<div style="font-size:12px;color:#94a3b8;">暂无商会动态</div>'
+          return
+        }
+
+        newsList.innerHTML = data
+          .map(
+            (n: any) => `
               <div style="margin-bottom:8px;cursor:pointer;">
                 <div style="font-weight:600;font-size:12px;">${n.title}</div>
                 <div style="font-size:11px;color:#94a3b8;">${n.publish_date ?? ''}</div>
               </div>
             `
-            )
-            .join('')
-        } catch (e) {
-          console.error('❌ 加载新闻失败', e)
-        }
+          )
+          .join('')
+      } catch (e) {
+        console.error('❌ 加载新闻失败', e)
       }
-  
-      loadNews()
-    } 
+    }
+
+    loadNews()
+  }
+
+  function initChat() {
     const supabase = (window as any).supabase
     if (!supabase) {
       console.error('Supabase 未初始化，3秒后重试...')
       setTimeout(initChat, 3000)
       return
     }
-    
+
     console.log('✅ Supabase 已初始化')
 
     const chatBox = document.getElementById('chat-box')
@@ -184,9 +187,14 @@ function initUSCGCCPage() {
     const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement
     const authOverlay = document.getElementById('auth-overlay')
     const chatContainer = document.getElementById('chat-container')
-    
+
     let isAuthenticated = false
-    let welcomeShown = false   // ⭐ 新增这一行
+
+    // =========================
+    // ✅ 只改这里：用 sessionStorage 控制“验证成功”只显示一次（同一个 tab 内）
+    // =========================
+    const WELCOME_KEY = 'uscgcc_welcome_shown'
+
     supabase.auth.getSession().then(({ data: { session } }: any) => {
       if (session) {
         isAuthenticated = true
@@ -202,25 +210,26 @@ function initUSCGCCPage() {
         if (authOverlay) {
           authOverlay.style.transition = 'opacity 0.5s'
           authOverlay.style.opacity = '0'
-          setTimeout(() => authOverlay.style.display = 'none', 500)
+          setTimeout(() => (authOverlay.style.display = 'none'), 500)
         }
-        if (!welcomeShown) {
-          welcomeShown = true
-          addMessage("验证成功！我是您的 AI 助手，现在您可以向我提问了。", false)
+
+        if (!sessionStorage.getItem(WELCOME_KEY)) {
+          sessionStorage.setItem(WELCOME_KEY, '1')
+          addMessage('验证成功！我是您的 AI 助手，现在您可以向我提问了。', false)
         }
       }
     })
 
     function addMessage(text: string, isUser = false) {
       if (!chatBox) return
-      
+
       const msgDiv = document.createElement('div')
-      msgDiv.style.cssText = isUser 
+      msgDiv.style.cssText = isUser
         ? 'align-self: flex-end; max-width: 85%; padding: 12px; background: #38bdf8; border-radius: 15px; border-bottom-right-radius: 2px; font-size: 0.85rem; color: white; word-wrap: break-word;'
         : 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2); word-wrap: break-word;'
       msgDiv.textContent = text
       chatBox.appendChild(msgDiv)
-      
+
       if (chatContainer) {
         chatContainer.scrollTop = chatContainer.scrollHeight
       }
@@ -230,7 +239,8 @@ function initUSCGCCPage() {
       if (!chatBox) return
       const loadingDiv = document.createElement('div')
       loadingDiv.id = 'loading-msg'
-      loadingDiv.style.cssText = 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2);'
+      loadingDiv.style.cssText =
+        'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2);'
       loadingDiv.textContent = '正在思考...'
       chatBox.appendChild(loadingDiv)
       if (chatContainer) {
@@ -246,8 +256,10 @@ function initUSCGCCPage() {
     async function callAI(question: string, menuType: string | null = null) {
       try {
         showLoading()
-        
-        const { data: { session } } = await supabase.auth.getSession()
+
+        const {
+          data: { session }
+        } = await supabase.auth.getSession()
         if (!session) {
           removeLoading()
           addMessage('请先验证邮箱以使用 AI 提问功能。')
@@ -257,12 +269,12 @@ function initUSCGCCPage() {
         let finalQuestion = question
         if (menuType && !question) {
           const menuQuestions: Record<string, string> = {
-            '商会简介': '请详细介绍美国粤商会的基本信息',
-            '总会长简介': '请介绍美国粤商会的总会长',
-            '秘书长简介': '请介绍美国粤商会的秘书长',
-            '入会指南': '请介绍如何加入美国粤商会',
-            '创始单位': '请介绍美国粤商会的创始单位',
-            '联系我们': '请提供美国粤商会的联系方式'
+            商会简介: '请详细介绍美国粤商会的基本信息',
+            总会长简介: '请介绍美国粤商会的总会长',
+            秘书长简介: '请介绍美国粤商会的秘书长',
+            入会指南: '请介绍如何加入美国粤商会',
+            创始单位: '请介绍美国粤商会的创始单位',
+            联系我们: '请提供美国粤商会的联系方式'
           }
           finalQuestion = menuQuestions[menuType] || `请介绍${menuType}`
         }
@@ -348,11 +360,11 @@ function initUSCGCCPage() {
 
     if (verifyBtn && emailInput) {
       console.log('✅ 验证按钮已就绪')
-      
-      verifyBtn.onclick = async (e) => {
+
+      verifyBtn.onclick = async e => {
         e.preventDefault()
         console.log('🚀 确认按钮被点击了')
-        
+
         const email = emailInput.value.trim()
         if (!email || !email.includes('@')) {
           alert('请输入有效的电子邮箱地址')
@@ -364,7 +376,7 @@ function initUSCGCCPage() {
 
         try {
           console.log('开始发送验证邮件到:', email)
-          
+
           const { data, error } = await supabase.auth.signInWithOtp({
             email: email,
             options: {
@@ -376,14 +388,19 @@ function initUSCGCCPage() {
             console.error('Supabase 错误:', error)
             throw error
           }
-          
+
           console.log('验证邮件发送成功:', data)
-          alert('验证链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。')
+          alert(
+            '验证链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。'
+          )
           verifyBtn.textContent = '已发送'
-          
         } catch (err: any) {
           console.error('发送失败:', err)
-          alert('发送失败: ' + (err.message || '未知错误') + '\n请检查您的邮箱格式是否正确。')
+          alert(
+            '发送失败: ' +
+              (err.message || '未知错误') +
+              '\n请检查您的邮箱格式是否正确。'
+          )
           verifyBtn.textContent = '点击确认'
           verifyBtn.disabled = false
         }
@@ -392,20 +409,19 @@ function initUSCGCCPage() {
       console.error('❌ 邮箱验证按钮或输入框未找到', { verifyBtn, emailInput })
     }
   }
-  
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         initChat()
-        initNews()   // ⭐ 新增
+        initNews()
       }, 500)
     })
   } else {
     setTimeout(() => {
       initChat()
-      initNews()     // ⭐ 新增
+      initNews()
     }, 500)
-
   }
 }
 
@@ -414,22 +430,22 @@ function initUSCGCCPage() {
 // ============================================
 
 function initAdminLogin() {
-  const logo = document.querySelector('.logo-img') || document.querySelector('img[alt*="logo"]');
-  
+  const logo = document.querySelector('.logo-img') || document.querySelector('img[alt*="logo"]')
+
   if (!logo) {
-    console.warn('未找到 LOGO 元素');
-    return;
+    console.warn('未找到 LOGO 元素')
+    return
   }
 
   if (logo) {
-    const logoBtn = logo as HTMLElement;
-    logoBtn.style.cursor = 'pointer';
-    logoBtn.title = '管理员登录';
-    
-    logoBtn.onclick = (e) => {
-      e.stopPropagation();
-      showLoginModal();
-    };
+    const logoBtn = logo as HTMLElement
+    logoBtn.style.cursor = 'pointer'
+    logoBtn.title = '管理员登录'
+
+    logoBtn.onclick = e => {
+      e.stopPropagation()
+      showLoginModal()
+    }
   }
 }
 
@@ -438,14 +454,14 @@ function initAdminLogin() {
 // ============================================
 
 // 显示登录弹窗
-(window as any).showLoginModal = function() {
-  const existing = document.getElementById('adminLoginModal');
+;(window as any).showLoginModal = function () {
+  const existing = document.getElementById('adminLoginModal')
   if (existing) {
-    existing.remove();
+    existing.remove()
   }
 
-  const modal = document.createElement('div');
-  modal.id = 'adminLoginModal';
+  const modal = document.createElement('div')
+  modal.id = 'adminLoginModal'
   modal.style.cssText = `
     position: fixed;
     top: 0;
@@ -458,7 +474,7 @@ function initAdminLogin() {
     justify-content: center;
     z-index: 10000;
     padding: 20px;
-  `;
+  `
 
   modal.innerHTML = `
     <div style="
@@ -556,82 +572,81 @@ function initAdminLogin() {
         如需帮助，请联系系统管理员
       </p>
     </div>
-  `;
+  `
 
-  document.body.appendChild(modal);
+  document.body.appendChild(modal)
 
-  modal.addEventListener('click', (e) => {
+  modal.addEventListener('click', e => {
     if (e.target === modal) {
-      modal.remove();
+      modal.remove()
     }
-  });
+  })
 
-  const loginForm = document.getElementById('adminLoginForm');
+  const loginForm = document.getElementById('adminLoginForm')
   if (loginForm) {
-    loginForm.addEventListener('submit', handleAdminLogin);
+    loginForm.addEventListener('submit', handleAdminLogin)
   }
-};
+}
 
 // 初始化时也定义为局部函数
 function showLoginModal() {
-  (window as any).showLoginModal();
+  ;(window as any).showLoginModal()
 }
 
 // 处理管理员登录
-async function handleAdminLogin(e: any) { 
-  e.preventDefault();
+async function handleAdminLogin(e: any) {
+  e.preventDefault()
 
-  const btn = document.getElementById('adminLoginBtn') as HTMLButtonElement;
-  const alertDiv = document.getElementById('loginModalAlert');
-  
-  if (!btn || !alertDiv) return;
+  const btn = document.getElementById('adminLoginBtn') as HTMLButtonElement
+  const alertDiv = document.getElementById('loginModalAlert')
 
-  btn.disabled = true;
-  btn.textContent = '登录中...';
+  if (!btn || !alertDiv) return
 
-  const emailInput = document.getElementById('adminEmail') as HTMLInputElement;
-  const passwordInput = document.getElementById('adminPassword') as HTMLInputElement;
-  
+  btn.disabled = true
+  btn.textContent = '登录中...'
+
+  const emailInput = document.getElementById('adminEmail') as HTMLInputElement
+  const passwordInput = document.getElementById('adminPassword') as HTMLInputElement
+
   if (!emailInput || !passwordInput) {
-    btn.disabled = false;
-    btn.textContent = '🚀 登录';
-    return;
+    btn.disabled = false
+    btn.textContent = '🚀 登录'
+    return
   }
 
-  const email = emailInput.value;
-  const password = passwordInput.value;
+  const email = emailInput.value
+  const password = passwordInput.value
 
   try {
     const { error } = await (window as any).supabase.auth.signInWithPassword({
       email: email,
       password: password
-    });
+    })
 
-    if (error) throw error;
+    if (error) throw error
 
     if (alertDiv) {
       alertDiv.innerHTML = `
         <div style="padding: 12px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
           ✅ 登录成功！正在跳转...
         </div>
-      `;
+      `
     }
 
     // 登录成功后直接跳转到 admin-simple.html
     setTimeout(() => {
-      window.location.href = '/admin-simple.html';
-    }, 1000);
-
+      window.location.href = '/admin-simple.html'
+    }, 1000)
   } catch (error: any) {
     if (alertDiv) {
       alertDiv.innerHTML = `
         <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
           ❌ ${error.message}
         </div>
-      `;
+      `
     }
-    if (btn) btn.disabled = false;
-    if (btn) btn.textContent = '🚀 登录';
+    if (btn) btn.disabled = false
+    if (btn) btn.textContent = '🚀 登录'
   }
 }
 
@@ -639,15 +654,15 @@ async function handleAdminLogin(e: any) {
 // 🔑 忘记密码功能 - 声明为全局函数
 // ============================================
 
-(window as any).showForgotPassword = function() {
+;(window as any).showForgotPassword = function () {
   // 创建忘记密码弹窗
-  const existing = document.getElementById('forgotPasswordModal');
+  const existing = document.getElementById('forgotPasswordModal')
   if (existing) {
-    existing.remove();
+    existing.remove()
   }
 
-  const modal = document.createElement('div');
-  modal.id = 'forgotPasswordModal';
+  const modal = document.createElement('div')
+  modal.id = 'forgotPasswordModal'
   modal.style.cssText = `
     position: fixed;
     top: 0;
@@ -660,7 +675,7 @@ async function handleAdminLogin(e: any) {
     justify-content: center;
     z-index: 10001;
     padding: 20px;
-  `;
+  `
 
   modal.innerHTML = `
     <div style="
@@ -745,62 +760,62 @@ async function handleAdminLogin(e: any) {
         </p>
       </div>
     </div>
-  `;
+  `
 
-  document.body.appendChild(modal);
+  document.body.appendChild(modal)
 
-  modal.addEventListener('click', (e) => {
+  modal.addEventListener('click', e => {
     if (e.target === modal) {
-      modal.remove();
+      modal.remove()
     }
-  });
+  })
 
-  const forgotForm = document.getElementById('forgotPasswordForm');
+  const forgotForm = document.getElementById('forgotPasswordForm')
   if (forgotForm) {
-    forgotForm.addEventListener('submit', handleForgotPassword);
+    forgotForm.addEventListener('submit', handleForgotPassword)
   }
-};
+}
 
 // 处理忘记密码请求
 async function handleForgotPassword(e: any) {
-  e.preventDefault();
+  e.preventDefault()
 
-  const btn = document.getElementById('resetPasswordBtn') as HTMLButtonElement;
-  const alertDiv = document.getElementById('forgotPasswordAlert');
-  
-  if (!btn || !alertDiv) return;
+  const btn = document.getElementById('resetPasswordBtn') as HTMLButtonElement
+  const alertDiv = document.getElementById('forgotPasswordAlert')
 
-  btn.disabled = true;
-  btn.textContent = '发送中...';
-  alertDiv.innerHTML = '';
+  if (!btn || !alertDiv) return
 
-  const emailInput = document.getElementById('resetEmail') as HTMLInputElement;
-  
+  btn.disabled = true
+  btn.textContent = '发送中...'
+  alertDiv.innerHTML = ''
+
+  const emailInput = document.getElementById('resetEmail') as HTMLInputElement
+
   if (!emailInput) {
-    btn.disabled = false;
-    btn.textContent = '📧 发送重置链接';
-    return;
+    btn.disabled = false
+    btn.textContent = '📧 发送重置链接'
+    return
   }
 
-  const email = emailInput.value.trim();
+  const email = emailInput.value.trim()
 
   if (!email || !email.includes('@')) {
     alertDiv.innerHTML = `
       <div style="padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; margin-bottom: 20px;">
         ⚠️ 请输入有效的邮箱地址
       </div>
-    `;
-    btn.disabled = false;
-    btn.textContent = '📧 发送重置链接';
-    return;
+    `
+    btn.disabled = false
+    btn.textContent = '📧 发送重置链接'
+    return
   }
 
   try {
     const { error } = await (window as any).supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/admin-simple.html'
-    });
+    })
 
-    if (error) throw error;
+    if (error) throw error
 
     alertDiv.innerHTML = `
       <div style="padding: 15px; background: #d4edda; color: #155724; border-radius: 6px; margin-bottom: 20px;">
@@ -813,23 +828,22 @@ async function handleForgotPassword(e: any) {
           3. 设置新密码（至少8位，含大小写字母+数字）
         </div>
       </div>
-    `;
+    `
 
-    btn.textContent = '✅ 已发送';
-    
+    btn.textContent = '✅ 已发送'
+
     // 5秒后自动关闭弹窗
     setTimeout(() => {
-      const modal = document.getElementById('forgotPasswordModal');
-      if (modal) modal.remove();
-    }, 5000);
-
+      const modal = document.getElementById('forgotPasswordModal')
+      if (modal) modal.remove()
+    }, 5000)
   } catch (error: any) {
     alertDiv.innerHTML = `
       <div style="padding: 12px; background: #f8d7da; color: #721c24; border-radius: 6px; margin-bottom: 20px;">
         ❌ 发送失败：${error.message || '请稍后重试'}
       </div>
-    `;
-    btn.disabled = false;
-    btn.textContent = '📧 发送重置链接';
+    `
+    btn.disabled = false
+    btn.textContent = '📧 发送重置链接'
   }
 }
