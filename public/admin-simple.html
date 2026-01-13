@@ -1023,7 +1023,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
         window.loadKnowledgeBase = async function() {
             try {
                 const { data, error } = await supabase
-                    .from('ai_knowledge_base')
+                    .from('knowledge_base')
                     .select('*')
                     .order('created_at', { ascending: false });
 
@@ -1067,7 +1067,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
 
             try {
                 const { error } = await supabase
-                    .from('ai_knowledge_base')
+                    .from('knowledge_base')
                     .insert([{
                         title,
                         category,
@@ -1093,7 +1093,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
                 const { data: pendingNews, error: pendingError } = await supabase
                     .from('news')
                     .select('*')
-                    .eq('status', 'pending')
+                    .eq('status', "draft")
                     .order('created_at', { ascending: false });
 
                 if (pendingError && pendingError.code !== 'PGRST116') throw pendingError;
@@ -1353,7 +1353,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
         window.loadConversations = async function() {
             try {
                 const { data, error } = await supabase
-                    .from('ai_conversations')
+                    .from('conversations')
                     .select('*')
                     .order('updated_at', { ascending: false })
                     .limit(50);
@@ -1407,7 +1407,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
         window.addConversationToKnowledge = async function(conversationId) {
             try {
                 const { data: conv, error } = await supabase
-                    .from('ai_conversations')
+                    .from('conversations')
                     .select('*')
                     .eq('id', conversationId)
                     .single();
@@ -1422,7 +1422,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
                 const content = `问题：\n${userQuestions}\n\n回答：\n${aiAnswers}`;
 
                 const { error: insertError } = await supabase
-                    .from('ai_knowledge_base')
+                    .from('knowledge_base')
                     .insert([{
                         title: title || '从对话生成',
                         category: '常见问题',
