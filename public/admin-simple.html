@@ -811,7 +811,7 @@
                         <div class="stat-label">AI对话记录</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="pendingQACount">0</div>
+                        <div class="stat-number" id="draftQACount">0</div>
                         <div class="stat-label">待添加到知识库</div>
                     </div>
                 </div>
@@ -1090,19 +1090,20 @@
         window.loadNews = async function() {
             try {
                 // 加载待审核新闻
-                const { data: pendingNews, error: pendingError } = await supabase
+                const { data: draftNews, error: draftError } = await supabase
                     .from('news')
                     .select('*')
                     .eq('status', 'draft')
+                    .eq('tenant_slug', 'uscgcc') // ✅ 添加这一行
                     .order('created_at', { ascending: false });
 
-                if (pendingError && pendingError.code !== 'PGRST116') throw pendingError;
-
-                document.getElementById('newsCount').textContent = pendingNews?.length || 0;
+                if (draftError && draftError.code !== 'PGRST116') throw draftError;
+                console.log('✅ 待审核新闻数据:', draftNews); 
+                document.getElementById('newsCount').textContent = draftNews?.length || 0;
                 
-                const pendingListDiv = document.getElementById('newsList');
-                if (pendingNews && pendingNews.length > 0) {
-                    pendingListDiv.innerHTML = pendingNews.map(item => `
+                const draftListDiv = document.getElementById('newsList');
+                if (draftNews && draftNews.length > 0) {
+                    draftListDiv.innerHTML = draftNews.map(item => `
                         <div class="item-card">
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" class="news-checkbox" data-id="${item.id}" checked>
@@ -1127,7 +1128,7 @@
                         </div>
                     `).join('');
                 } else {
-                    pendingListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
+                    draftListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无待审核的新闻</p></div>';
                 }
 
                 // 加载已发布新闻
@@ -1135,10 +1136,11 @@
                     .from('news')
                     .select('*')
                     .eq('status', 'published')
+                    .eq('tenant_slug', 'uscgcc') // ✅ 添加这一行
                     .order('created_at', { ascending: false });
 
                 if (publishedError && publishedError.code !== 'PGRST116') throw publishedError;
-
+                console.log('✅ 已发布新闻数据:', publishedNews);// 添加日志
                 document.getElementById('approvedNewsCount').textContent = publishedNews?.length || 0;
                 
                 const publishedListDiv = document.getElementById('publishedNewsList');

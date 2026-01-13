@@ -107,6 +107,7 @@ console.log('✅ USCGCC news script running');
             .from('news')
             .select('*')
             .eq('status', 'published')
+             .eq('tenant_slug', 'uscgcc')  // ✅ 添加这一行
             .order('created_at', { ascending: false });
 
           if (error) throw error;
