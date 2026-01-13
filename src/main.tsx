@@ -119,6 +119,55 @@ if (root) {
 
 function initUSCGCCPage() {
   function initChat() {
+    function initNews() {
+      const supabase = (window as any).supabase
+      if (!supabase) {
+        console.error('Supabase 未初始化，3秒后重试加载新闻...')
+        setTimeout(initNews, 3000)
+        return
+      }
+  
+      async function loadNews() {
+        try {
+          const newsList = document.getElementById('news-list')
+          if (!newsList) {
+            console.warn('❌ 首页未找到 #news-list')
+            return
+          }
+  
+          const { data, error } = await supabase
+            .from('news')
+            .select('id,title,content,publish_date,created_at,tenant_slug,status')
+            .eq('tenant_slug', 'uscgcc')
+            .eq('status', 'published')
+            .order('created_at', { ascending: false })
+            .limit(4)
+  
+          if (error) throw error
+  
+          if (!data || data.length === 0) {
+            newsList.innerHTML =
+              '<div style="font-size:12px;color:#94a3b8;">暂无商会动态</div>'
+            return
+          }
+  
+          newsList.innerHTML = data
+            .map(
+              (n: any) => `
+              <div style="margin-bottom:8px;cursor:pointer;">
+                <div style="font-weight:600;font-size:12px;">${n.title}</div>
+                <div style="font-size:11px;color:#94a3b8;">${n.publish_date ?? ''}</div>
+              </div>
+            `
+            )
+            .join('')
+        } catch (e) {
+          console.error('❌ 加载新闻失败', e)
+        }
+      }
+  
+      loadNews()
+    } 
     const supabase = (window as any).supabase
     if (!supabase) {
       console.error('Supabase 未初始化，3秒后重试...')
@@ -137,7 +186,7 @@ function initUSCGCCPage() {
     const chatContainer = document.getElementById('chat-container')
     
     let isAuthenticated = false
-
+    let welcomeShown = false   // ⭐ 新增这一行
     supabase.auth.getSession().then(({ data: { session } }: any) => {
       if (session) {
         isAuthenticated = true
@@ -155,7 +204,10 @@ function initUSCGCCPage() {
           authOverlay.style.opacity = '0'
           setTimeout(() => authOverlay.style.display = 'none', 500)
         }
-        addMessage("验证成功！我是您的 AI 助手，现在您可以向我提问了。", false)
+        if (!welcomeShown) {
+          welcomeShown = true
+          addMessage("验证成功！我是您的 AI 助手，现在您可以向我提问了。", false)
+        }
       }
     })
 
@@ -343,10 +395,17 @@ function initUSCGCCPage() {
   
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(initChat, 500)
+      setTimeout(() => {
+        initChat()
+        initNews()   // ⭐ 新增
+      }, 500)
     })
   } else {
-    setTimeout(initChat, 500)
+    setTimeout(() => {
+      initChat()
+      initNews()     // ⭐ 新增
+    }, 500)
+
   }
 }
 
