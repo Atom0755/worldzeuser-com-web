@@ -95,8 +95,8 @@ export const USCGCCPage = `
       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
       
       const supabase = createClient(
-        'https://dthgkfxlzyqscxnrtfke.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aGdrZnhsenlxc2N4bnJ0ZmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MzQyMTksImV4cCI6MjA1MjMxMDIxOX0.MlFhkdAuPrjhkWz5RWUq_4z-TvETtKaIp9ZWcvHqq30'
+        'https://hrnedqrnzqseuuxmegsb.supabase.co',
+        'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio'
       );
 
       // 加载并显示新闻列表
