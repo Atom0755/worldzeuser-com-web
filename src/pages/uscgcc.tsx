@@ -90,7 +90,7 @@ export const USCGCCPage = `
         </div>
       </div>
     </div>
-console.log('✅ USCGCC news script running');
+
 
     <script type="module">
       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
