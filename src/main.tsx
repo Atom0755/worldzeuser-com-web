@@ -214,22 +214,28 @@ function initUSCGCCPage() {
   
         // ✅ 渲染：标题 + 日期 + 正文第一行预览
         newsList.innerHTML = data
-          .map((n: any) => {
-            const preview = firstLinePreview(n.content || '')
-            return `
-              <div class="news-item"
-                   data-id="${n.id}"
-                   style="font-size:12px;color:#e2e8f0;margin-bottom:10px;
-                          border-bottom:1px solid rgba(255,255,255,0.05);
-                          padding-bottom:10px;cursor:pointer;">
-                <div style="font-weight:700;margin-bottom:4px;">${n.title || ''}</div>
-                <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">${n.publish_date || ''}</div>
-                <div style="padding-left:1em;color:#cbd5e1;font-size:11px;line-height:1.5;">
-                  ${preview}
-                </div>
+        .map((n: any) => {
+          const preview = firstLinePreview(n.content || '')
+        
+          const dateText =
+            (n.publish_date && String(n.publish_date).trim()) ||
+            (n.created_at ? new Date(n.created_at).toLocaleDateString('en-CA') : '') // en-CA => YYYY-MM-DD
+        
+          return `
+            <div class="news-item"
+                 data-id="${n.id}"
+                 style="font-size:12px;color:#e2e8f0;margin-bottom:10px;
+                        border-bottom:1px solid rgba(255,255,255,0.05);
+                        padding-bottom:10px;cursor:pointer;">
+              <div style="font-weight:700;margin-bottom:4px;">${n.title || ''}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">${dateText}</div>
+              <div style="padding-left:1em;color:#cbd5e1;font-size:11px;line-height:1.5;">
+                ${preview}
               </div>
-            `
-          })
+            </div>
+          `
+        })
+        
           .join('')
   
         // ✅ 绑定点击事件：弹全文
