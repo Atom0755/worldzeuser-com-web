@@ -25,7 +25,7 @@ export const USCGCCPage = `
       position: relative;
     ">
       <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px;">
-        <img src="/USCGCC-LOGO.jpg" class="logo-img" style="width: 40px; height: 40px; border-radius: 4px;" />
+        <img src="/USCGCC-LOGO.jpg" class="logo-img" id="logo-img" style="width: 40px; height: 40px; border-radius: 4px; cursor: pointer;" />
         <div style="text-align: center;">
           <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
           <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
@@ -68,10 +68,7 @@ export const USCGCCPage = `
 
       <div style="flex: 0.8; background: rgba(15, 23, 42, 0.4); border-top: 1px solid rgba(255,255,255,0.05); padding: 12px; overflow-y: auto;">
         <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold;">商会动态 News</div>
-        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 2024 美中经贸交流会成功举办...</div>
-        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;">• 关于新入会成员资格公示通知...</div>
-        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 美国粤商会AI助手正式启用上线...</div>
-        <div style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 12px;">• 更多动态资讯,即将发布...</div>
+        <div id="news-list"></div>
         <div style="text-align: center; padding-top: 5px;">
           <p style="font-size: 0.8rem; color: #38bdf8; margin: 0; cursor: pointer; font-weight: bold;">申请加入 USCGCC 商会 →</p>
         </div>
@@ -79,4 +76,117 @@ export const USCGCCPage = `
 
       <div style="padding: 5px;"></div>
     </div>
+
+    <!-- 新闻全文弹窗 -->
+    <div id="news-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
+      <div style="background: #1e293b; border-radius: 20px; max-width: 90%; max-height: 80vh; width: 500px; position: relative; overflow: hidden; border: 2px solid rgba(56, 189, 248, 0.3);">
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8);">
+          <h3 id="modal-title" style="margin: 0; color: #38bdf8; font-size: 1.1rem;"></h3>
+          <button id="close-modal" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
+        </div>
+        <div style="padding: 20px; overflow-y: auto; max-height: calc(80vh - 100px);">
+          <div id="modal-date" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;"></div>
+          <div id="modal-content" style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+      
+      const supabase = createClient(
+        'https://dthgkfxlzyqscxnrtfke.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aGdrZnhsenlxc2N4bnJ0ZmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MzQyMTksImV4cCI6MjA1MjMxMDIxOX0.MlFhkdAuPrjhkWz5RWUq_4z-TvETtKaIp9ZWcvHqq30'
+      );
+
+      // 加载并显示新闻列表
+      async function loadNews() {
+        try {
+          const { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('status', 'published')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          const newsList = document.getElementById('news-list');
+          if (!data || data.length === 0) {
+            newsList.innerHTML = '<div style="font-size: 0.7rem; color: #94a3b8; text-align: center;">暂无动态新闻...</div>';
+            return;
+          }
+
+          newsList.innerHTML = data.map(news => {
+            const preview = news.content ? news.content.substring(0, 40) + (news.content.length > 40 ? '...' : '') : '';
+            return \`
+              <div class="news-item" data-id="\${news.id}" style="font-size: 0.7rem; color: #e2e8f0; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; cursor: pointer; transition: all 0.2s;">
+                <div style="font-weight: bold; margin-bottom: 3px;">\${news.title}</div>
+                <div style="color: #94a3b8; font-size: 0.65rem; margin-bottom: 3px;">\${news.publish_date || ''}</div>
+                <div style="padding-left: 1em; color: #cbd5e1; font-size: 0.68rem;">\${preview}</div>
+              </div>
+            \`;
+          }).join('');
+
+          // 添加点击事件
+          document.querySelectorAll('.news-item').forEach(item => {
+            item.addEventListener('click', async () => {
+              const newsId = item.getAttribute('data-id');
+              await showNewsModal(newsId);
+            });
+            item.addEventListener('mouseenter', function() {
+              this.style.background = 'rgba(56, 189, 248, 0.1)';
+              this.style.borderRadius = '8px';
+              this.style.padding = '8px';
+            });
+            item.addEventListener('mouseleave', function() {
+              this.style.background = 'transparent';
+              this.style.padding = '0';
+              this.style.paddingBottom = '8px';
+            });
+          });
+        } catch (error) {
+          console.error('加载新闻失败:', error);
+        }
+      }
+
+      // 显示新闻详情弹窗
+      async function showNewsModal(newsId) {
+        try {
+          const { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('id', newsId)
+            .single();
+
+          if (error) throw error;
+
+          document.getElementById('modal-title').textContent = data.title;
+          document.getElementById('modal-date').textContent = data.publish_date || '';
+          document.getElementById('modal-content').textContent = data.content || '';
+          document.getElementById('news-modal').style.display = 'flex';
+        } catch (error) {
+          console.error('加载新闻详情失败:', error);
+        }
+      }
+
+      // 关闭弹窗
+      document.getElementById('close-modal').addEventListener('click', () => {
+        document.getElementById('news-modal').style.display = 'none';
+      });
+
+      // 点击背景关闭弹窗
+      document.getElementById('news-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'news-modal') {
+          document.getElementById('news-modal').style.display = 'none';
+        }
+      });
+
+      // LOGO点击事件 - 跳转到管理后台
+      document.getElementById('logo-img').addEventListener('click', () => {
+        window.location.href = '/admin-simple.html';
+      });
+
+      // 页面加载时加载新闻
+      loadNews();
+    </script>
 `;
