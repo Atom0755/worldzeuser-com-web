@@ -976,6 +976,34 @@
     </div>
   </div>
 </div>
+/* ✅ 钱包状态提示 */
+.status-alert{
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  border: 1px solid #eee;
+  background: #fff;
+}
+.status-alert.danger{
+  border-color: rgba(231,76,60,.35);
+  background: rgba(231,76,60,.08);
+  color: #7f1d1d;
+}
+
+/* ✅ suspended 时余额卡变红 */
+.wallet-card.danger{
+  background: linear-gradient(135deg, #e74c3c 0%, #b91c1c 100%);
+}
+
+/* ✅ 月费显示“/ 月” */
+.money-sub{
+  font-size: 12px;
+  opacity: .9;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
 
     </style>
 </head>
@@ -1036,15 +1064,18 @@
         <div class="form-section">
           <h2>🏠 概览</h2>
           <div class="wallet-grid">
-            <div class="wallet-card">
+            <div class="wallet-card" id="dashBalanceCard">
+
               <div class="k">钱包余额</div>
               <div class="v" id="dashBalance">$0.00</div>
             </div>
-            <div class="wallet-card">
+            <div class="wallet-card" id="dashBalanceCard">
+
               <div class="k">订阅状态</div>
               <div class="v" id="dashStatus">Active</div>
             </div>
-            <div class="wallet-card">
+            <div class="wallet-card" id="dashBalanceCard">
+
               <div class="k">下次扣费日</div>
               <div class="v" id="dashNextBill">—</div>
             </div>
@@ -1054,6 +1085,8 @@
             <button class="bulk-btn publish-btn" onclick="switchSection('wallet')">去充值</button>
             <button class="bulk-btn select-all" onclick="switchSection('content')">管理内容</button>
           </div>
+          <div id="dashAlert" style="margin-top:12px;"></div>
+
 
           <div style="margin-top:10px;color:#6b7280;font-size:13px;">
             说明：今晚优先上线“钱包与订阅”，其他模块先显示名称，后续逐步开放。
@@ -1338,6 +1371,8 @@
             <button class="bulk-btn bulk-reject" onclick="simulateMonthlyDeduct()">模拟扣月费</button>
             <button class="bulk-btn select-all" onclick="resetWallet()">重置钱包(测试)</button>
           </div>
+          <div id="walletAlert" style="margin-top:12px;"></div>
+
 
           <div class="items-list">
             <h3>📒 钱包流水</h3>
@@ -1840,7 +1875,7 @@ function loadWalletLocal() {
   // 默认钱包
   return {
     balance: 0,
-    monthlyFee: 10,
+    monthlyFee: 50,
     anchorDay: null, // 第一次扣费日期（例如 18）
     status: 'active',
     tx: [] // {type, amount, at, note}
@@ -1853,7 +1888,7 @@ function saveWalletLocal(w) {
 
 function fmtMoney(n) {
   const v = Number(n || 0);
-  return `$${v.toFixed(2)}`;
+  return `$${v.toFixed(v)}`;
 }
 
 function renderWallet() {
@@ -1864,7 +1899,8 @@ function renderWallet() {
   const elFee = document.getElementById('walletMonthlyFee');
   const elAnchor = document.getElementById('walletAnchorDay');
   if (elBalance) elBalance.textContent = fmtMoney(w.balance);
-  if (elFee) elFee.textContent = fmtMoney(w.monthlyFee);
+  if (elFee) elFee.innerHTML = `${fmtMoney(w.monthlyFee)}<div class="money-sub">/ 月</div>`;
+
   if (elAnchor) elAnchor.textContent = w.anchorDay ? `每月 ${w.anchorDay} 日` : '未设置';
 
   // dashboard cards
@@ -1874,6 +1910,30 @@ function renderWallet() {
   if (dBal) dBal.textContent = fmtMoney(w.balance);
   if (dStatus) dStatus.textContent = (w.status || 'active').toUpperCase();
   if (dNext) dNext.textContent = w.anchorDay ? `每月 ${w.anchorDay} 日` : '—';
+
+  // ✅ suspended 高亮 + 提示
+const isSuspended = (w.status || 'active') === 'suspended';
+
+const dashCard = document.getElementById('dashBalanceCard');
+const walletCard = document.getElementById('walletBalanceCard');
+dashCard?.classList.toggle('danger', isSuspended);
+walletCard?.classList.toggle('danger', isSuspended);
+
+const dashAlert = document.getElementById('dashAlert');
+const walletAlert = document.getElementById('walletAlert');
+
+if (isSuspended) {
+  const html = `<div class="status-alert danger">⚠️ 账户已暂停（余额不足扣除月费 $${Math.floor(w.monthlyFee)}）。请先充值，充值到账后将自动恢复可用。</div>`;
+  if (dashAlert) dashAlert.innerHTML = html;
+  if (walletAlert) walletAlert.innerHTML = html;
+} else {
+  const html = `<div class="status-alert">✅ 订阅正常：每月从钱包扣除月费 ${fmtMoney(w.monthlyFee)}。</div>`;
+  if (dashAlert) dashAlert.innerHTML = html;
+  if (walletAlert) walletAlert.innerHTML = html;
+}
+
+
+
 
   // tx table
   const wrap = document.getElementById('txWrap');
