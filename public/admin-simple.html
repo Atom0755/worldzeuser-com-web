@@ -969,35 +969,6 @@
   .admin-layout { grid-template-columns: 1fr; }
   .sidebar { height: auto; position: relative; top: 0; }
 }
-<!-- ✅ 新增：钱包充值弹窗（替代 prompt） -->
-<div id="recharge-modal" class="modal">
-  <div class="confirm-modal-box" style="max-width:560px;">
-    <div class="confirm-modal-header">
-      <div class="confirm-modal-title">➕ 钱包充值</div>
-      <button class="modal-close" onclick="closeRechargeModal()">×</button>
-    </div>
-
-    <div class="confirm-modal-body">
-      <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">
-        输入充值金额（测试阶段：仅本地记账，后续接 Stripe 真收款）
-      </div>
-
-      <div class="form-group" style="margin-bottom:14px;">
-        <label>充值金额（USD）<span>*</span></label>
-        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
-      </div>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(20)">+$20</button>
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">+$50</button>
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">+$100</button>
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">+$200</button>
-      </div>
-
-      <div style="font-size:12px;color:#9ca3af;margin-top:8px;">
-        提示：上线后会显示 Stripe 支付页，并生成可追溯交易号。
-      </div>
-    </div>
 
     <div class="confirm-modal-footer">
       <button class="btn-cancel" onclick="closeRechargeModal()">取消</button>
@@ -1337,6 +1308,7 @@
             </div>
         </div>
     </div>
+    
 
     </section>
 
@@ -1386,6 +1358,36 @@
     </section>
   </main>
 </div>
+<!-- ✅ 新增：钱包充值弹窗（替代 prompt） -->
+<div id="recharge-modal" class="modal">
+  <div class="confirm-modal-box" style="max-width:560px;">
+    <div class="confirm-modal-header">
+      <div class="confirm-modal-title">➕ 钱包充值</div>
+      <button class="modal-close" onclick="closeRechargeModal()">×</button>
+    </div>
+
+    <div class="confirm-modal-body">
+      <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">
+        输入充值金额（测试阶段：仅本地记账，后续接 Stripe 真收款）
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>充值金额（USD）<span>*</span></label>
+        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(20)">+$20</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">+$50</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">+$100</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">+$200</button>
+      </div>
+
+      <div style="font-size:12px;color:#9ca3af;margin-top:8px;">
+        提示：上线后会显示 Stripe 支付页，并生成可追溯交易号。
+      </div>
+    </div>
+
 
 
     <script type="module">
@@ -1901,31 +1903,6 @@ function renderWallet() {
   `;
 }
 
-window.openRechargeModal = function() {
-  const amountStr = prompt('请输入充值金额（例如 50）');
-  if (!amountStr) return;
-  const amt = Number(amountStr);
-  if (!Number.isFinite(amt) || amt <= 0) {
-    alert('金额不正确');
-    return;
-  }
-  const w = loadWalletLocal();
-  w.balance = Number(w.balance || 0) + amt;
-  w.tx.unshift({ type: 'recharge', amount: amt, at: Date.now(), note: '测试充值（后续接 Stripe）' });
-
-  // 如果还没有锚点日期，第一次充值后可引导设置（先简单：设为今天日期）
-  if (!w.anchorDay) {
-    const d = new Date();
-    w.anchorDay = d.getDate();
-  }
-
-  // 如果余额足够，恢复 active
-  if (w.balance >= w.monthlyFee) w.status = 'active';
-
-  saveWalletLocal(w);
-  renderWallet();
-  alert('✅ 充值成功（本地测试）');
-};
 
 window.simulateMonthlyDeduct = function() {
   const w = loadWalletLocal();
@@ -1950,11 +1927,16 @@ window.simulateMonthlyDeduct = function() {
 // ✅ 充值弹窗：打开/关闭
 window.openRechargeModal = function() {
   const modal = document.getElementById('recharge-modal');
+  if (!modal) {
+    alert('❌ recharge-modal 未加载：请确认弹窗HTML在 <body> 内，而不是 <style> 里');
+    return;
+  }
   const input = document.getElementById('rechargeAmount');
   if (input) input.value = '';
   modal.style.display = 'flex';
   setTimeout(() => input?.focus(), 50);
 };
+
 
 window.closeRechargeModal = function() {
   document.getElementById('recharge-modal').style.display = 'none';
