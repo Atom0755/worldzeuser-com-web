@@ -970,12 +970,7 @@
   .sidebar { height: auto; position: relative; top: 0; }
 }
 
-    <div class="confirm-modal-footer">
-      <button class="btn-cancel" onclick="closeRechargeModal()">取消</button>
-      <button class="btn-submit" onclick="submitRecharge()">确认充值</button>
-    </div>
-  </div>
-</div>
+   
 /* ✅ 钱包状态提示 */
 .status-alert{
   border-radius: 12px;
@@ -1064,22 +1059,25 @@
         <div class="form-section">
           <h2>🏠 概览</h2>
           <div class="wallet-grid">
-            <div class="wallet-card" id="dashBalanceCard">
+  <!-- 余额卡 -->
+  <div class="wallet-card" id="dashBalanceCard">
+    <div class="k">钱包余额</div>
+    <div class="v" id="dashBalance">$0</div>
+  </div>
 
-              <div class="k">钱包余额</div>
-              <div class="v" id="dashBalance">$0.00</div>
-            </div>
-            <div class="wallet-card" id="dashBalanceCard">
+  <!-- 状态卡 -->
+  <div class="wallet-card" id="dashStatusCardBox">
+    <div class="k">订阅状态</div>
+    <div class="v" id="dashStatus">ACTIVE</div>
+  </div>
 
-              <div class="k">订阅状态</div>
-              <div class="v" id="dashStatus">Active</div>
-            </div>
-            <div class="wallet-card" id="dashBalanceCard">
+  <!-- 扣费日卡 -->
+  <div class="wallet-card" id="dashNextBillCardBox">
+    <div class="k">下次扣费日</div>
+    <div class="v" id="dashNextBill">—</div>
+  </div>
+</div>
 
-              <div class="k">下次扣费日</div>
-              <div class="v" id="dashNextBill">—</div>
-            </div>
-          </div>
 
           <div class="wallet-actions">
             <button class="bulk-btn publish-btn" onclick="switchSection('wallet')">去充值</button>
@@ -1354,11 +1352,11 @@
           <div class="wallet-grid">
             <div class="wallet-card">
               <div class="k">钱包余额</div>
-              <div class="v" id="walletBalance">$0.00</div>
+              <div class="v" id="walletBalance">$0</div>
             </div>
             <div class="wallet-card">
               <div class="k">月费</div>
-              <div class="v" id="walletMonthlyFee">$10.00</div>
+              <div class="v" id="walletMonthlyFee">$50</div>
             </div>
             <div class="wallet-card">
               <div class="k">扣费日（锚点）</div>
@@ -1887,9 +1885,10 @@ function saveWalletLocal(w) {
 }
 
 function fmtMoney(n) {
-  const v = Number(n || 0);
-  return `$${v.toFixed(v)}`;
+  const v = Math.floor(Number(n || 0));
+  return `$${v}`;
 }
+
 
 function renderWallet() {
   const w = loadWalletLocal();
@@ -1897,7 +1896,7 @@ function renderWallet() {
   // wallet page
   const elBalance = document.getElementById('walletBalance');
   const elFee = document.getElementById('walletMonthlyFee');
-  const elAnchor = document.getElementById('walletAnchorDay');
+  const elAnchor = document.getElementById('dashNextBill');
   if (elBalance) elBalance.textContent = fmtMoney(w.balance);
   if (elFee) elFee.innerHTML = `${fmtMoney(w.monthlyFee)}<div class="money-sub">/ 月</div>`;
 
@@ -1914,10 +1913,14 @@ function renderWallet() {
   // ✅ suspended 高亮 + 提示
 const isSuspended = (w.status || 'active') === 'suspended';
 
-const dashCard = document.getElementById('dashBalanceCard');
-const walletCard = document.getElementById('walletBalanceCard');
-dashCard?.classList.toggle('danger', isSuspended);
-walletCard?.classList.toggle('danger', isSuspended);
+const dashBalanceCard = document.getElementById('dashBalanceCard');
+const dashStatusCardBox = document.getElementById('dashStatusCardBox');
+const walletBalanceCard = document.getElementById('walletBalanceCard');
+
+dashBalanceCard?.classList.toggle('danger', isSuspended);
+dashStatusCardBox?.classList.toggle('danger', isSuspended);
+walletBalanceCard?.classList.toggle('danger', isSuspended);
+
 
 const dashAlert = document.getElementById('dashAlert');
 const walletAlert = document.getElementById('walletAlert');
