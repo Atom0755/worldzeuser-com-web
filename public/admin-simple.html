@@ -969,6 +969,42 @@
   .admin-layout { grid-template-columns: 1fr; }
   .sidebar { height: auto; position: relative; top: 0; }
 }
+<!-- ✅ 新增：钱包充值弹窗（替代 prompt） -->
+<div id="recharge-modal" class="modal">
+  <div class="confirm-modal-box" style="max-width:560px;">
+    <div class="confirm-modal-header">
+      <div class="confirm-modal-title">➕ 钱包充值</div>
+      <button class="modal-close" onclick="closeRechargeModal()">×</button>
+    </div>
+
+    <div class="confirm-modal-body">
+      <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">
+        输入充值金额（测试阶段：仅本地记账，后续接 Stripe 真收款）
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>充值金额（USD）<span>*</span></label>
+        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(20)">+$20</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">+$50</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">+$100</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">+$200</button>
+      </div>
+
+      <div style="font-size:12px;color:#9ca3af;margin-top:8px;">
+        提示：上线后会显示 Stripe 支付页，并生成可追溯交易号。
+      </div>
+    </div>
+
+    <div class="confirm-modal-footer">
+      <button class="btn-cancel" onclick="closeRechargeModal()">取消</button>
+      <button class="btn-submit" onclick="submitRecharge()">确认充值</button>
+    </div>
+  </div>
+</div>
 
     </style>
 </head>
@@ -1911,6 +1947,52 @@ window.simulateMonthlyDeduct = function() {
     alert('❌ 余额不足：已标记为暂停（suspended）');
   }
 };
+// ✅ 充值弹窗：打开/关闭
+window.openRechargeModal = function() {
+  const modal = document.getElementById('recharge-modal');
+  const input = document.getElementById('rechargeAmount');
+  if (input) input.value = '';
+  modal.style.display = 'flex';
+  setTimeout(() => input?.focus(), 50);
+};
+
+window.closeRechargeModal = function() {
+  document.getElementById('recharge-modal').style.display = 'none';
+};
+
+// ✅ 快捷按钮
+window.quickRecharge = function(amount) {
+  const input = document.getElementById('rechargeAmount');
+  if (!input) return;
+  const v = Number(input.value || 0);
+  input.value = String(v + Number(amount));
+};
+
+// ✅ 提交充值（本地钱包逻辑不变，只是入口变好看）
+window.submitRecharge = function() {
+  const input = document.getElementById('rechargeAmount');
+  const amt = Number(input?.value);
+
+  if (!Number.isFinite(amt) || amt <= 0) {
+    alert('请输入正确的充值金额');
+    return;
+  }
+
+  const w = loadWalletLocal();
+  w.balance = Number(w.balance || 0) + amt;
+  w.tx.unshift({ type: 'recharge', amount: amt, at: Date.now(), note: '测试充值（后续接 Stripe）' });
+
+  if (!w.anchorDay) {
+    const d = new Date();
+    w.anchorDay = d.getDate();
+  }
+  if (w.balance >= w.monthlyFee) w.status = 'active';
+
+  saveWalletLocal(w);
+  renderWallet();
+  closeRechargeModal();
+  alert('✅ 充值成功（本地测试）');
+};
 
 window.resetWallet = function() {
   if (!confirm('确定要重置本地钱包吗？仅测试用。')) return;
@@ -2456,6 +2538,10 @@ checkAuth = async function() {
                 closeConfirmModal();
             }
         });
+        document.getElementById('recharge-modal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeRechargeModal();
+});
+
 
         // 初始化
         checkAuth();
