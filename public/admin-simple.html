@@ -1373,15 +1373,20 @@
 
       <div class="form-group" style="margin-bottom:14px;">
         <label>充值金额（USD）<span>*</span></label>
-        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
+        <input id="rechargeAmount" type="number" min="50" step="1" placeholder="例如：50">
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(20)">+$20</button>
+       
         <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">+$50</button>
         <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">+$100</button>
         <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">+$200</button>
       </div>
+      <div class="confirm-modal-footer">
+  <button class="btn-cancel" onclick="closeRechargeModal()">取消</button>
+  <button class="btn-submit" onclick="submitRecharge()">确认充值</button>
+</div>
+
 
       <div style="font-size:12px;color:#9ca3af;margin-top:8px;">
         提示：上线后会显示 Stripe 支付页，并生成可追溯交易号。
@@ -1955,10 +1960,11 @@ window.submitRecharge = function() {
   const input = document.getElementById('rechargeAmount');
   const amt = Number(input?.value);
 
-  if (!Number.isFinite(amt) || amt <= 0) {
-    alert('请输入正确的充值金额');
-    return;
-  }
+  if (!Number.isFinite(amt) || amt < 50) {
+  alert('最低充值金额为 $50');
+  return;
+}
+
 
   const w = loadWalletLocal();
   w.balance = Number(w.balance || 0) + amt;
