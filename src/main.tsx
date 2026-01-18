@@ -136,9 +136,13 @@ function initHomeLogoutBar() {
   const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null
   const overlay = document.getElementById('auth-overlay') as HTMLElement | null
 
+  // ✅ 先判空一次
   if (!bar || !emailEl || !logoutBtn) return
 
   async function refreshAuthUI() {
+    // ✅ 再判空一次（让 TS100%放心）
+    if (!bar || !emailEl) return
+
     try {
       const { data } = await sb.auth.getSession()
       const session = data?.session
@@ -161,6 +165,7 @@ function initHomeLogoutBar() {
     } catch (e) {
       console.error('signOut failed:', e)
     }
+
     // 退出后：显示邮箱验证条（让访客重新验证）
     if (overlay) overlay.style.display = 'block'
     await refreshAuthUI()
@@ -187,6 +192,7 @@ function initHomeLogoutBar() {
   // 首次刷新
   refreshAuthUI()
 }
+
 
 function initUSCGCCPage() {
   // =========================
