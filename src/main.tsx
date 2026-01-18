@@ -379,21 +379,46 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
     })
 
     supabase.auth.onAuthStateChange((event: string, session: any) => {
-      console.log('身份状态变化:', event)
-      if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-        isAuthenticated = true
-        if (authOverlay) {
-          authOverlay.style.transition = 'opacity 0.5s'
-          authOverlay.style.opacity = '0'
-          setTimeout(() => (authOverlay.style.display = 'none'), 500)
-        }
+  console.log('身份状态变化:', event)
 
-        if (!sessionStorage.getItem(WELCOME_KEY)) {
-          sessionStorage.setItem(WELCOME_KEY, '1')
-          addMessage('验证成功！我是您的 AI 助手，现在您可以向我提问了。', false)
-        }
-      }
-    })
+  // ✅ 登录成功
+  if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+    isAuthenticated = true
+
+    if (authOverlay) {
+      authOverlay.style.transition = 'opacity 0.5s'
+      authOverlay.style.opacity = '0'
+      setTimeout(() => (authOverlay.style.display = 'none'), 500)
+    }
+
+    if (!sessionStorage.getItem(WELCOME_KEY)) {
+      sessionStorage.setItem(WELCOME_KEY, '1')
+      addMessage('验证成功！我是您的 AI 助手，现在您可以向我提问了。', false)
+    }
+    return
+  }
+
+  // ✅ 退出 / 会话失效：把 UI 复位回“请输入邮箱”状态
+  if (event === 'SIGNED_OUT') {
+    isAuthenticated = false
+
+    if (authOverlay) {
+      authOverlay.style.display = 'block'
+      authOverlay.style.transition = ''
+      authOverlay.style.opacity = '1'
+    }
+
+    // 可选：把按钮状态复位，避免停留在“已发送/注册中”
+    if (verifyBtn) {
+      verifyBtn.textContent = '点击确认'
+      verifyBtn.disabled = false
+    }
+    if (emailInput) {
+      // emailInput.value = '' // 你要不要清空随你（不清也行）
+    }
+  }
+})
+
 
     function addMessage(text: string, isUser = false) {
       if (!chatBox) return
