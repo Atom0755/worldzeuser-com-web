@@ -357,8 +357,9 @@ function initUSCGCCPage() {
     const chatBox = document.getElementById('chat-box')
     const chatInput = document.getElementById('chat-input') as HTMLInputElement
     const sendBtn = document.getElementById('send-btn')
-    const emailInput = document.getElementById('email-input') as HTMLInputElement
-    const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement
+    const emailInput = document.getElementById('email-input') as HTMLInputElement | null
+const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement | null
+
     const authOverlay = document.getElementById('auth-overlay')
     const chatContainer = document.getElementById('chat-container')
 
@@ -533,56 +534,88 @@ function initUSCGCCPage() {
     }
 
     if (verifyBtn && emailInput) {
-      console.log('✅ 验证按钮已就绪')
+  console.log('✅ 验证按钮已就绪')
 
-      verifyBtn.onclick = async e => {
-        e.preventDefault()
-        console.log('🚀 确认按钮被点击了')
+  verifyBtn.onclick = async e => {
+    e.preventDefault()
+    console.log('🚀 确认按钮被点击了')
 
-        const email = emailInput.value.trim()
-        if (!email || !email.includes('@')) {
-          alert('请输入有效的电子邮箱地址')
-          return
+    const email = emailInput.value.trim()
+    if (!email || !email.includes('@')) {
+      alert('请输入有效的电子邮箱地址')
+      return
+    }
+
+    // ✅ 1) 弹窗让用户输入密码（简单版：只做注册 signUp，不做“已注册就去登录”的分支）
+    const password = prompt(
+      `邮箱：${email}\n\n请输入密码（至少8位，包含大小写字母+数字）：`
+    )?.trim()
+
+    if (!password) {
+      alert('已取消：请先输入密码再继续。')
+      return
+    }
+
+    // ✅ 简单校验（不严格，但能挡住明显错误）
+    const okLen = password.length >= 8
+    const hasUpper = /[A-Z]/.test(password)
+    const hasLower = /[a-z]/.test(password)
+    const hasNum = /\d/.test(password)
+
+    if (!okLen || !hasUpper || !hasLower || !hasNum) {
+      alert('密码不符合要求：至少8位，且包含大小写字母与数字。')
+      return
+    }
+
+    verifyBtn.textContent = '注册中...'
+    verifyBtn.disabled = true
+
+    try {
+      console.log('开始注册用户:', email)
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          // ✅ 用户点击确认邮件链接后，跳回当前页面
+          emailRedirectTo: window.location.origin + window.location.pathname
         }
+      })
 
-        verifyBtn.textContent = '发送中...'
-        verifyBtn.disabled = true
+      if (error) throw error
 
-        try {
-          console.log('开始发送验证邮件到:', email)
+      console.log('注册请求成功:', data)
 
-          const { data, error } = await supabase.auth.signInWithOtp({
-            email: email,
-            options: {
-              emailRedirectTo: window.location.origin + window.location.pathname
-            }
-          })
+      alert(
+        '确认链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。'
+      )
 
-          if (error) {
-            console.error('Supabase 错误:', error)
-            throw error
-          }
+      verifyBtn.textContent = '已发送'
+      // ✅ 注意：这里不自动隐藏 overlay，因为要等用户点邮件确认后才算真正登录成功
+      // 登录成功后你原来的 onAuthStateChange 会负责隐藏 overlay
+    } catch (err: any) {
+      console.error('注册失败:', err)
 
-          console.log('验证邮件发送成功:', data)
-          alert(
-            '验证链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。'
-          )
-          verifyBtn.textContent = '已发送'
-        } catch (err: any) {
-          console.error('发送失败:', err)
-          alert(
-            '发送失败: ' +
-              (err.message || '未知错误') +
-              '\n请检查您的邮箱格式是否正确。'
-          )
-          verifyBtn.textContent = '点击确认'
-          verifyBtn.disabled = false
-        }
+      // ✅ 你提醒的情况：邮箱已注册
+      // 简单提示，不做自动登录分支（你说先简单一点）
+      if (
+        String(err?.message || '').toLowerCase().includes('already') ||
+        String(err?.message || '').toLowerCase().includes('registered') ||
+        String(err?.message || '').toLowerCase().includes('exists')
+      ) {
+        alert('这个邮箱已注册过了：请直接用“邮箱+密码登录”（后续我可以帮你加登录流程）。')
+      } else {
+        alert('失败：' + (err?.message || '未知错误'))
       }
-    } else {
-      console.error('❌ 邮箱验证按钮或输入框未找到', { verifyBtn, emailInput })
+
+      verifyBtn.textContent = '点击确认'
+      verifyBtn.disabled = false
     }
   }
+} else {
+  console.error('❌ 邮箱验证按钮或输入框未找到', { verifyBtn, emailInput })
+}
+}
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
