@@ -24,13 +24,23 @@ export const USCGCCPage = `
       overflow: hidden;
       position: relative;
     ">
-      <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px;">
-        <img src="/USCGCC-LOGO.jpg" class="logo-img" id="logo-img" style="width: 40px; height: 40px; border-radius: 4px; cursor: pointer;" />
-        <div style="text-align: center;">
-          <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
-          <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
-        </div>
-      </div>
+      <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px; position: relative;">
+  
+  <!-- ✅ 右上角：登录后显示邮箱 + 退出 -->
+  <div id="auth-bar" style="position:absolute; right:12px; top:12px; display:none; align-items:center; gap:8px;">
+    <span id="user-email" style="font-size:10px; color:#94a3b8; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+    <button id="logout-btn" style="font-size:10px; padding:4px 10px; border-radius:999px; border:1px solid rgba(248,113,113,.35); color:#fecaca; background: rgba(248,113,113,.08); cursor:pointer;">
+      退出
+    </button>
+  </div>
+
+  <img src="/USCGCC-LOGO.jpg" class="logo-img" id="logo-img" style="width: 40px; height: 40px; border-radius: 4px; cursor: pointer;" />
+  <div style="text-align: center;">
+    <div style="font-weight: bold; font-size: 0.85rem;">USCGCC 美国粤商会/美中广东总商会</div>
+    <div style="font-size: 0.65rem; color: #38bdf8;"> AI 智能助手</div>
+  </div>
+</div>
+
 
       <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.2);">
         <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
@@ -99,6 +109,43 @@ export const USCGCCPage = `
         'https://hrnedqrnzqseuuxmegsb.supabase.co',
         'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio'
       );
+            // =========================
+      // ✅ 登录后显示“退出”
+      // =========================
+      async function refreshAuthUI() {
+        const { data: { session } } = await supabase.auth.getSession();
+        const bar = document.getElementById('auth-bar');
+        const emailEl = document.getElementById('user-email');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (!bar || !emailEl || !logoutBtn) return;
+
+        if (session?.user) {
+          bar.style.display = 'flex';
+          emailEl.textContent = session.user.email || '';
+        } else {
+          bar.style.display = 'none';
+          emailEl.textContent = '';
+        }
+      }
+
+      async function logout() {
+        await supabase.auth.signOut();
+        await refreshAuthUI();
+
+        // ✅ 退出后：如果你想把邮箱输入框重新显示出来（可选）
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.style.display = 'block';
+      }
+
+      // 绑定退出按钮
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'logout-btn') logout();
+      });
+
+      // 监听登录状态变化（登录成功后自动显示退出）
+      supabase.auth.onAuthStateChange(() => refreshAuthUI());
+
 
       // ✅ 新闻缓存：避免点击后再查DB被RLS拦截导致弹窗打不开
       const newsCache = new Map();
@@ -305,5 +352,7 @@ export const USCGCCPage = `
 
       // 页面加载时加载新闻
       loadNews();
+            refreshAuthUI();
+
     </script>
 `;
