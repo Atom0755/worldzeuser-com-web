@@ -616,10 +616,27 @@ function initAdminLogin() {
     logoBtn.style.cursor = 'pointer'
     logoBtn.title = '管理员登录'
 
-    logoBtn.onclick = e => {
-      e.stopPropagation()
-      showLoginModal()
+    logoBtn.onclick = async e => {
+  e.stopPropagation()
+
+  const sb = (window as any).supabase
+  if (!sb) return showLoginModal()
+
+  try {
+    const { data } = await sb.auth.getSession()
+    if (data?.session?.user) {
+      // ✅ 已登录：直接进后台，不再重复输账号密码
+      window.location.href = '/admin-simple.html'
+      return
     }
+  } catch (err) {
+    console.warn('getSession failed:', err)
+  }
+
+  // ✅ 未登录：才弹管理员登录框
+  showLoginModal()
+}
+
   }
 }
 
