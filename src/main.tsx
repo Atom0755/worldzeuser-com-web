@@ -18,6 +18,10 @@ if (root) {
     root.innerHTML = USCGCCPage
     requestAnimationFrame(() => {
       initUSCGCCPage()
+
+      // ✅ 新增：让首页右上角“退出”真正生效（不依赖 uscgcc.tsx 里的 <script>）
+      initHomeLogoutBar()
+
       setTimeout(() => {
         initAdminLogin()
       }, 100)
@@ -117,6 +121,73 @@ if (root) {
   }
 }
 
+/**
+ * ✅ 新增：USCGCC 首页右上角“邮箱 + 退出”控制
+ * - 登录（OTP/管理员密码登录）后显示
+ * - 点击退出：supabase.auth.signOut()
+ * - 退出后留在当前页，并把邮箱验证条(auth-overlay)重新显示
+ */
+function initHomeLogoutBar() {
+  const sb = (window as any).supabase
+  if (!sb) return
+
+  const bar = document.getElementById('auth-bar') as HTMLElement | null
+  const emailEl = document.getElementById('user-email') as HTMLElement | null
+  const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null
+  const overlay = document.getElementById('auth-overlay') as HTMLElement | null
+
+  if (!bar || !emailEl || !logoutBtn) return
+
+  async function refreshAuthUI() {
+    try {
+      const { data } = await sb.auth.getSession()
+      const session = data?.session
+
+      if (session?.user) {
+        bar.style.display = 'flex'
+        emailEl.textContent = session.user.email || ''
+      } else {
+        bar.style.display = 'none'
+        emailEl.textContent = ''
+      }
+    } catch (e) {
+      console.error('refreshAuthUI failed:', e)
+    }
+  }
+
+  async function logout() {
+    try {
+      await sb.auth.signOut()
+    } catch (e) {
+      console.error('signOut failed:', e)
+    }
+    // 退出后：显示邮箱验证条（让访客重新验证）
+    if (overlay) overlay.style.display = 'block'
+    await refreshAuthUI()
+  }
+
+  // 防重复绑定
+  if (!(window as any).__uscgccLogoutBound) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      logout()
+    })
+    ;(window as any).__uscgccLogoutBound = true
+  }
+
+  // 监听登录态变化（OTP/管理员登录都会触发）
+  if (!(window as any).__uscgccAuthListenerBound) {
+    sb.auth.onAuthStateChange(() => {
+      refreshAuthUI()
+    })
+    ;(window as any).__uscgccAuthListenerBound = true
+  }
+
+  // 首次刷新
+  refreshAuthUI()
+}
+
 function initUSCGCCPage() {
   // =========================
   // ✅ 只改这里：把 initNews 提到 initChat 外面（同级），避免 TS 找不到 initNews
@@ -128,35 +199,35 @@ function initUSCGCCPage() {
       setTimeout(initNews, 3000)
       return
     }
-  
+
     // 只绑定一次关闭事件，避免重复绑定
     ;(window as any).__newsModalBound ||= false
     if (!(window as any).__newsModalBound) {
       const closeBtn = document.getElementById('close-modal')
       const modal = document.getElementById('news-modal')
-  
+
       if (closeBtn && modal) {
         closeBtn.addEventListener('click', () => {
           ;(modal as HTMLElement).style.display = 'none'
         })
-  
+
         modal.addEventListener('click', (e) => {
           if ((e.target as HTMLElement).id === 'news-modal') {
             ;(modal as HTMLElement).style.display = 'none'
           }
         })
-  
+
         ;(window as any).__newsModalBound = true
       }
     }
-  
+
     function firstLinePreview(content: string) {
       if (!content) return ''
       // 去掉首尾空白，把换行切第一行
       const line = content.replace(/\r/g, '').trim().split('\n').find(Boolean) || ''
       return line.length > 40 ? line.slice(0, 40) + '...' : line
     }
-  
+
     async function showNewsModal(newsId: string) {
       try {
         const { data, error } = await supabase
@@ -164,20 +235,20 @@ function initUSCGCCPage() {
           .select('id,title,content,publish_date,created_at')
           .eq('id', newsId)
           .single()
-  
+
         if (error) throw error
         if (!data) return
-  
+
         const modal = document.getElementById('news-modal') as HTMLElement | null
         const titleEl = document.getElementById('modal-title')
         const dateEl = document.getElementById('modal-date')
         const contentEl = document.getElementById('modal-content')
-  
+
         if (!modal || !titleEl || !dateEl || !contentEl) {
           console.warn('未找到新闻弹窗 DOM（news-modal/modal-title/modal-date/modal-content）')
           return
         }
-  
+
         titleEl.textContent = data.title || ''
         dateEl.textContent = data.publish_date || ''
         contentEl.textContent = data.content || ''
@@ -186,7 +257,7 @@ function initUSCGCCPage() {
         console.error('❌ 加载新闻详情失败', e)
       }
     }
-  
+
     async function loadNews() {
       try {
         const newsList = document.getElementById('news-list')
@@ -194,7 +265,7 @@ function initUSCGCCPage() {
           console.warn('❌ 首页未找到 #news-list')
           return
         }
-  
+
         // ✅ 首页只显示：本商会 + 已发布
         const { data, error } = await supabase
           .from('news')
@@ -203,25 +274,25 @@ function initUSCGCCPage() {
           .eq('status', 'published')
           .order('created_at', { ascending: false })
           .limit(4)
-  
+
         if (error) throw error
-  
+
         if (!data || data.length === 0) {
           newsList.innerHTML =
             '<div style="font-size:12px;color:#94a3b8;text-align:center;">暂无动态新闻...</div>'
           return
         }
-  
+
         // ✅ 渲染：标题 + 日期 + 正文第一行预览
         newsList.innerHTML = data
-        .map((n: any) => {
-          const preview = firstLinePreview(n.content || '')
-        
-          const dateText =
-            (n.publish_date && String(n.publish_date).trim()) ||
-            (n.created_at ? new Date(n.created_at).toLocaleDateString('en-CA') : '') // en-CA => YYYY-MM-DD
-        
-          return `
+          .map((n: any) => {
+            const preview = firstLinePreview(n.content || '')
+
+            const dateText =
+              (n.publish_date && String(n.publish_date).trim()) ||
+              (n.created_at ? new Date(n.created_at).toLocaleDateString('en-CA') : '') // en-CA => YYYY-MM-DD
+
+            return `
             <div class="news-item"
                  data-id="${n.id}"
                  style="font-size:12px;color:#e2e8f0;margin-bottom:10px;
@@ -234,36 +305,38 @@ function initUSCGCCPage() {
               </div>
             </div>
           `
-        })
-        
+          })
           .join('')
-  
+
         // ✅ 绑定点击事件：弹全文
         document.querySelectorAll('.news-item').forEach((el) => {
           const item = el as HTMLElement
 
-item.addEventListener('mouseenter', () => {
-  item.style.background = 'rgba(56,189,248,0.10)'
-  item.style.borderRadius = '8px'
-  item.style.padding = '8px'
-})
+          item.addEventListener('mouseenter', () => {
+            item.style.background = 'rgba(56,189,248,0.10)'
+            item.style.borderRadius = '8px'
+            item.style.padding = '8px'
+          })
 
-item.addEventListener('mouseleave', () => {
-  item.style.background = 'transparent'
-  item.style.borderRadius = '0'
-  item.style.padding = '0'
-  item.style.paddingBottom = '10px'
-})
+          item.addEventListener('mouseleave', () => {
+            item.style.background = 'transparent'
+            item.style.borderRadius = '0'
+            item.style.padding = '0'
+            item.style.paddingBottom = '10px'
+          })
 
+          item.addEventListener('click', () => {
+            const id = item.getAttribute('data-id')
+            if (id) showNewsModal(id)
+          })
         })
       } catch (e) {
         console.error('❌ 加载新闻失败', e)
       }
     }
-  
+
     loadNews()
   }
-  
 
   function initChat() {
     const supabase = (window as any).supabase
