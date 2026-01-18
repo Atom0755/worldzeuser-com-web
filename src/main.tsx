@@ -558,12 +558,101 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
       })
     }
 
-    if (verifyBtn && emailInput) {
+  // ✅ 弹窗：输入密码（带“显示/隐藏”）
+function askPasswordWithModal(email: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    // 防重复
+    const old = document.getElementById('pwModal')
+    if (old) old.remove()
+
+    const wrap = document.createElement('div')
+    wrap.id = 'pwModal'
+    wrap.style.cssText = `
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99999; padding: 20px;
+    `
+
+    wrap.innerHTML = `
+      <div style="
+        width: 100%; max-width: 380px;
+        background: #ffffff; border-radius: 14px;
+        padding: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.35);
+        font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      ">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">请输入密码</div>
+        <div style="font-size:12px; color:#64748b; margin-bottom:12px; word-break:break-all;">
+          邮箱：${email}
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input id="pwInput" type="password" autocomplete="current-password"
+            placeholder="至少8位，大小写字母+数字"
+            style="
+              flex:1; padding:10px 12px; border-radius:10px;
+              border:1px solid #cbd5e1; outline:none; font-size:14px;
+            "
+          />
+          <button id="pwToggle" type="button"
+            style="
+              padding:10px 10px; border-radius:10px; border:1px solid #cbd5e1;
+              background:#f8fafc; cursor:pointer; font-size:12px;
+            "
+          >显示</button>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+          <button id="pwCancel" type="button"
+            style="padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;"
+          >取消</button>
+          <button id="pwOk" type="button"
+            style="padding:10px 14px; border-radius:10px; border:none; background:#2563eb; color:#fff; cursor:pointer;"
+          >确定</button>
+        </div>
+
+        <div style="margin-top:10px; font-size:11px; color:#94a3b8;">
+          提示：如果是新用户，下一步会发“确认邮件”到邮箱，需要点击邮件链接完成注册。
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(wrap)
+
+    const input = document.getElementById('pwInput') as HTMLInputElement | null
+    const toggle = document.getElementById('pwToggle') as HTMLButtonElement | null
+    const ok = document.getElementById('pwOk') as HTMLButtonElement | null
+    const cancel = document.getElementById('pwCancel') as HTMLButtonElement | null
+
+    if (input) input.focus()
+
+    const cleanup = (val: string | null) => {
+      wrap.remove()
+      resolve(val)
+    }
+
+    wrap.addEventListener('click', (e) => {
+      if (e.target === wrap) cleanup(null)
+    })
+
+    if (toggle && input) {
+      toggle.onclick = () => {
+        const isPw = input.type === 'password'
+        input.type = isPw ? 'text' : 'password'
+        toggle.textContent = isPw ? '隐藏' : '显示'
+      }
+    }
+
+    if (cancel) cancel.onclick = () => cleanup(null)
+    if (ok && input) ok.onclick = () => cleanup(input.value.trim())
+  })
+}
+
+if (verifyBtn && emailInput) {
   console.log('✅ 验证按钮已就绪')
 
-  verifyBtn.onclick = async e => {
+  verifyBtn.onclick = async (e) => {
     e.preventDefault()
-    console.log('🚀 确认按钮被点击了')
 
     const email = emailInput.value.trim()
     if (!email || !email.includes('@')) {
@@ -571,17 +660,14 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
       return
     }
 
-    // ✅ 1) 弹窗让用户输入密码（简单版：只做注册 signUp，不做“已注册就去登录”的分支）
-    const password = prompt(
-      `邮箱：${email}\n\n请输入密码（至少8位，包含大小写字母+数字）：`
-    )?.trim()
-
+    // 1) 让用户输入密码（带隐藏/显示）
+    const password = await askPasswordWithModal(email)
     if (!password) {
       alert('已取消：请先输入密码再继续。')
       return
     }
 
-    // ✅ 简单校验（不严格，但能挡住明显错误）
+    // 2) 简单校验
     const okLen = password.length >= 8
     const hasUpper = /[A-Z]/.test(password)
     const hasLower = /[a-z]/.test(password)
@@ -592,47 +678,80 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
       return
     }
 
-    verifyBtn.textContent = '注册中...'
+    verifyBtn.textContent = '处理中...'
     verifyBtn.disabled = true
 
     try {
-      console.log('开始注册用户:', email)
+      // ✅ 优先按“已注册用户登录”处理：不会发邮件
+      const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
 
-      const { data, error } = await supabase.auth.signUp({
+      if (!loginErr && loginData?.session) {
+        // 登录成功：onAuthStateChange 会自动隐藏 overlay 并允许提问
+        verifyBtn.textContent = '已登录'
+        return
+      }
+
+      // 如果是“邮箱未确认”，提示去邮箱找确认邮件（可选：加 resend）
+      const msg = String(loginErr?.message || '')
+      const lower = msg.toLowerCase()
+
+      if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
+        // ✅ 可选：重发确认邮件（如果你想要）
+        try {
+          await supabase.auth.resend({
+            type: 'signup',
+            email,
+            options: { emailRedirectTo: window.location.origin + window.location.pathname }
+          })
+        } catch {}
+        alert('该邮箱尚未完成确认：请检查邮箱中的确认邮件（我已尝试重发）。')
+        verifyBtn.textContent = '点击确认'
+        verifyBtn.disabled = false
+        return
+      }
+
+      // ✅ 如果登录失败是“账号不存在”，则走注册 signUp（会发确认邮件）
+      // Supabase 不同项目报错文案不完全一样，所以做一个宽松判断
+      const looksLikeNoUser =
+        lower.includes('invalid login credentials') ||
+        lower.includes('user not found') ||
+        lower.includes('invalid') ||
+        lower.includes('not exist')
+
+      if (!looksLikeNoUser) {
+        // 其它错误（比如密码错）
+        alert('登录失败：' + (loginErr?.message || '未知错误'))
+        verifyBtn.textContent = '点击确认'
+        verifyBtn.disabled = false
+        return
+      }
+
+      // 3) 注册（新用户才会走到这里）
+      verifyBtn.textContent = '注册中...'
+
+      const { data: signupData, error: signupErr } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // ✅ 用户点击确认邮件链接后，跳回当前页面
           emailRedirectTo: window.location.origin + window.location.pathname
         }
       })
 
-      if (error) throw error
+      if (signupErr) throw signupErr
 
-      console.log('注册请求成功:', data)
-
+      console.log('注册请求成功:', signupData)
       alert(
         '确认链接已发送！\n请检查您的邮箱（包括垃圾邮件文件夹）。\n点击邮件中的链接后将自动跳转回此页面开启对话。'
       )
 
       verifyBtn.textContent = '已发送'
-      // ✅ 注意：这里不自动隐藏 overlay，因为要等用户点邮件确认后才算真正登录成功
-      // 登录成功后你原来的 onAuthStateChange 会负责隐藏 overlay
+      // 等用户点邮件确认后，SIGNED_IN 才会触发，你原来的逻辑会隐藏 overlay
     } catch (err: any) {
-      console.error('注册失败:', err)
-
-      // ✅ 你提醒的情况：邮箱已注册
-      // 简单提示，不做自动登录分支（你说先简单一点）
-      if (
-        String(err?.message || '').toLowerCase().includes('already') ||
-        String(err?.message || '').toLowerCase().includes('registered') ||
-        String(err?.message || '').toLowerCase().includes('exists')
-      ) {
-        alert('这个邮箱已注册过了：请直接用“邮箱+密码登录”（后续我可以帮你加登录流程）。')
-      } else {
-        alert('失败：' + (err?.message || '未知错误'))
-      }
-
+      console.error('注册/登录失败:', err)
+      alert('失败：' + (err?.message || '未知错误'))
       verifyBtn.textContent = '点击确认'
       verifyBtn.disabled = false
     }
