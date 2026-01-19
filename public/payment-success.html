@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment Success</title>
+</head>
+<body>
+  <h1>Payment successful 🎉</h1>
+  <p>Syncing your subscription...</p>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabase = createClient(
+      "https://hrnedqrnzqseuuxmegsb.supabase.co",
+      "sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio"
+    );
+
+    async function sync() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        document.body.innerHTML = "<p>Please log in again.</p>";
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke(
+        "sync-subscription",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (error) {
+        console.error(error);
+        document.body.innerHTML = "<p>Sync failed.</p>";
+        return;
+      }
+
+      document.body.innerHTML = "<h2>Subscription synced ✅</h2>";
+    }
+
+    sync();
+  </script>
+</body>
+</html>
