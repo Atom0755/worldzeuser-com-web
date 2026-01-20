@@ -6,7 +6,8 @@
 </head>
 <body>
   <h1>Payment successful 🎉</h1>
-  <p>Syncing your subscription...</p>
+  <p id="msg">Syncing your subscription...</p>
+  <pre id="detail" style="white-space: pre-wrap;"></pre>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -16,30 +17,40 @@
       "sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio"
     );
 
+    const $msg = document.getElementById("msg");
+    const $detail = document.getElementById("detail");
+
+    function show(text, obj) {
+      $msg.textContent = text;
+      if (obj) $detail.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
     async function sync() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+
+      if (sessErr) show("Session error", sessErr);
 
       if (!session?.access_token) {
-        document.body.innerHTML = "<p>Please log in again.</p>";
+        show("Please log in again. (No session on this domain)", {
+          hint: "确保你是从 uscgcc.worldzeuser.com 登录，并且打开的也是 uscgcc.worldzeuser.com/payment-success.html"
+        });
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke(
-        "sync-subscription",
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("sync-subscription", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
       if (error) {
-        console.error(error);
-        document.body.innerHTML = "<p>Sync failed.</p>";
+        // 关键：把后端返回的 body 读出来
+        let bodyText = "";
+        try { bodyText = await new Response(error.context?.body).text(); } catch (e) {}
+        show("Sync failed ❌", { error, bodyText });
+        console.error("sync-subscription error:", error, bodyText);
         return;
       }
 
-      document.body.innerHTML = "<h2>Subscription synced ✅</h2>";
+      show("Subscription synced ✅", data);
     }
 
     sync();
