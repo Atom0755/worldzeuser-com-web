@@ -2,59 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Payment Success</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
+    .card { max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid #eee; border-radius: 16px; }
+    h1 { margin: 0 0 12px; }
+    p { line-height: 1.6; }
+    a.btn {
+      display: inline-block; margin-top: 16px; padding: 10px 14px;
+      border-radius: 10px; text-decoration: none; border: 1px solid #ddd;
+    }
+    .muted { color: #666; font-size: 14px; margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <h1>Payment successful 🎉</h1>
-<p>Your subscription is being activated (usually within a few seconds).</p>
-<a href="https://uscgcc.worldzeuser.com/admin-simple.html">Go to Dashboard</a>
+  <div class="card">
+    <h1>Payment successful 🎉</h1>
+    <p>
+      Subscription will be activated shortly (usually within a few seconds).
+      Please return to the admin page and refresh to see the latest status.
+    </p>
 
+    <a class="btn" href="https://uscgcc.worldzeuser.com/admin-simple.html">
+      Go to Admin / Dashboard
+    </a>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-    const supabase = createClient(
-      "https://hrnedqrnzqseuuxmegsb.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NzM1NzAsImV4cCI6MjA4MzE0OTU3MH0.s6RfEtIOF8zGEH7NfmAg0dKn6RS8ekxSZjdt3KYBO4c"
-    );
-
-    const $msg = document.getElementById("msg");
-    const $detail = document.getElementById("detail");
-
-    function show(text, obj) {
-      $msg.textContent = text;
-      if (obj) $detail.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-    }
-
-    async function sync() {
-      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
-
-      if (sessErr) show("Session error", sessErr);
-
-      if (!session?.access_token) {
-        show("Please log in again. (No session on this domain)", {
-          hint: "确保你是从 uscgcc.worldzeuser.com 登录，并且打开的也是 uscgcc.worldzeuser.com/payment-success.html"
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("sync-subscription", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (error) {
-        // 关键：把后端返回的 body 读出来
-        let bodyText = "";
-        try { bodyText = await new Response(error.context?.body).text(); } catch (e) {}
-        show("Sync failed ❌", { error, bodyText });
-        console.error("sync-subscription error:", error, bodyText);
-        return;
-      }
-
-      show("Subscription synced ✅", data);
-    }
-
-    sync();
-  </script>
+    <div class="muted">
+      Tip: If the status hasn’t updated yet, wait 5–10 seconds and refresh once.
+    </div>
+  </div>
 </body>
 </html>
