@@ -6,15 +6,16 @@
 </head>
 <body>
   <h1>Payment successful 🎉</h1>
-  <p id="msg">Syncing your subscription...</p>
-  <pre id="detail" style="white-space: pre-wrap;"></pre>
+<p>Your subscription is being activated (usually within a few seconds).</p>
+<a href="https://uscgcc.worldzeuser.com/admin-simple.html">Go to Dashboard</a>
+
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const supabase = createClient(
       "https://hrnedqrnzqseuuxmegsb.supabase.co",
-      "sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio"
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NzM1NzAsImV4cCI6MjA4MzE0OTU3MH0.s6RfEtIOF8zGEH7NfmAg0dKn6RS8ekxSZjdt3KYBO4c"
     );
 
     const $msg = document.getElementById("msg");
