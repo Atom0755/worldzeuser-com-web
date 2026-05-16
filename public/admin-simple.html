@@ -1878,7 +1878,7 @@ function fmtMoney(n) {
 }
 
 async function renderWallet() {
-  const sb = (window as any).supabase || window.supabase;
+  const sb = window.supabase;
   if (!sb) return;
 
   const { data: { session } } = await sb.auth.getSession();
@@ -1997,7 +1997,7 @@ window.submitRecharge = async function() {
     return;
   }
 
-  const sb = (window as any).supabase || window.supabase;
+  const sb = window.supabase;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { alert('请先登录'); return; }
 
@@ -2022,7 +2022,7 @@ window.submitRecharge = async function() {
 
 // 模拟扣月费（测试用，写入 Supabase）
 window.simulateMonthlyDeduct = async function() {
-  const sb = (window as any).supabase || window.supabase;
+  const sb = window.supabase;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
