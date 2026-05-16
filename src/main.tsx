@@ -65,23 +65,7 @@ if (root) {
           WorldZeuser我的助手
         </h1>
 
-        <div style="margin: 15px 0;">
-          <a href="https://atmm.ai.worldzeuser.com" style="
-            display: block;
-            padding: 12px;
-            background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%);
-            border-radius: 16px;
-            color: white;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1rem;
-            box-shadow: 0 4px 15px rgba(0,114,255,0.3);
-          ">
-            🚀 ATMM.AI 爱同盟宇宙
-          </a>
-        </div>
-
-        <p style="color: #94a3b8; margin: 5px 0; font-size: 0.85rem;">AI Portal for The Associations</p>
+        <p style="color: #94a3b8; margin: 15px 0 5px; font-size: 0.85rem;">AI Portal for The Associations</p>
         
         <hr style="width: 120px; border: 0; border-top: 2px solid #38bdf8; margin: 15px auto;" />
 
@@ -1191,9 +1175,12 @@ async function handleForgotPassword(e: any) {
         <div style="font-size: 13px; line-height: 1.6;">
           我们已向 <strong>${email}</strong> 发送了密码重置链接。<br><br>
           <strong>接下来：</strong><br>
-          1. 检查您的邮箱（包括垃圾邮件）<br>
+          1. 检查您的邮箱（包括垃圾邮件 / Spam 文件夹）<br>
           2. 点击邮件中的链接<br>
-          3. 设置新密码（至少8位，含大小写字母+数字）
+          3. 设置新密码（至少8位，含大小写字母+数字）<br><br>
+          <div style="background: #fff3cd; color: #856404; padding: 8px 10px; border-radius: 4px; font-size: 12px;">
+            💡 若未收到邮件，请检查垃圾邮件（Spam）文件夹。如在垃圾邮件中找到，请将发件人标记为"非垃圾邮件"以便日后正常接收。
+          </div>
         </div>
       </div>
     `
