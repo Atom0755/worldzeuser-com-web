@@ -1406,7 +1406,7 @@
 
       <div class="form-group" style="margin-bottom:14px;">
         <label>充值金额（USD）<span>*</span></label>
-        <input id="rechargeAmount" type="number" min="50" step="1" placeholder="例如：50">
+        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
@@ -1989,8 +1989,8 @@ window.submitRecharge = async function() {
   const input = document.getElementById('rechargeAmount');
   const amt = Number(input?.value);
 
-  if (!Number.isFinite(amt) || amt < 50) {
-    alert('最低充值金额为 $50');
+  if (!Number.isFinite(amt) || amt < 1) {
+    alert('请输入充值金额');
     return;
   }
 
