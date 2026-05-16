@@ -1090,9 +1090,6 @@
           <div id="dashAlert" style="margin-top:12px;"></div>
 
 
-          <div style="margin-top:10px;color:#6b7280;font-size:13px;">
-            说明：今晚优先上线“钱包与订阅”，其他模块先显示名称，后续逐步开放。
-          </div>
         </div>
       </div>
     </section>
@@ -1923,8 +1920,8 @@ async function renderWallet() {
   document.getElementById('walletBalanceCard')?.classList.toggle('danger', isSuspended);
 
   const alertHtml = isSuspended
-    ? `<div class="status-alert danger">⚠️ 账户已暂停（余额不足扣除月费 ${fmtMoney(monthlyFee)}）。请充值后自动恢复。</div>`
-    : `<div class="status-alert">✅ 订阅正常：每月从钱包扣除月费 ${fmtMoney(monthlyFee)}。</div>`;
+    ? `<div class="status-alert danger">⚠️ 账户已暂停（余额不足）。请充值后自动恢复。</div>`
+    : `<div class="status-alert">✅ 账户正常：当前余额 ${fmtMoney(balance)}，可随时充值。</div>`;
   const dashAlert   = document.getElementById('dashAlert');
   const walletAlert = document.getElementById('walletAlert');
   if (dashAlert)   dashAlert.innerHTML   = alertHtml;
