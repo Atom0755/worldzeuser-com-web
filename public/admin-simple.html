@@ -1371,7 +1371,6 @@
           <div class="wallet-actions">
             <button class="bulk-btn publish-btn" onclick="openRechargeModal()">➕ 充值</button>
             <button class="bulk-btn bulk-reject" onclick="simulateMonthlyDeduct()">模拟扣月费</button>
-            <button class="bulk-btn select-all" onclick="resetWallet()">重置钱包(测试)</button>
           </div>
           <div id="walletAlert" style="margin-top:12px;"></div>
 
@@ -1405,7 +1404,7 @@
 
     <div class="confirm-modal-body">
       <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">
-        输入充值金额（测试阶段：仅本地记账，后续接 Stripe 真收款）
+        选择充值金额，点击确认后跳转 Stripe 安全支付页，支付成功自动到账。
       </div>
 
       <div class="form-group" style="margin-bottom:14px;">
@@ -1426,7 +1425,7 @@
 
 
       <div style="font-size:12px;color:#9ca3af;margin-top:8px;">
-        提示：上线后会显示 Stripe 支付页，并生成可追溯交易号。
+        支付由 Stripe 处理，安全加密。支付成功后余额实时更新。
       </div>
     </div>
 
@@ -1867,106 +1866,98 @@ window.openComingSoon = function(name) {
 };
 
 // =========================
-// ✅ 新增：钱包（先用 localStorage 跑通，后续接 Stripe/Supabase）
 // =========================
-const WALLET_KEY = 'wallet_uscgcc_v1';
+// 钱包（真实 Stripe + Supabase）
+// =========================
 
-function loadWalletLocal() {
-  const raw = localStorage.getItem(WALLET_KEY);
-  if (raw) return JSON.parse(raw);
-  // 默认钱包
-  return {
-    balance: 0,
-    monthlyFee: 50,
-    anchorDay: null, // 第一次扣费日期（例如 18）
-    status: 'active',
-    tx: [] // {type, amount, at, note}
-  };
-}
-
-function saveWalletLocal(w) {
-  localStorage.setItem(WALLET_KEY, JSON.stringify(w));
-}
+const WALLET_TENANT = 'uscgcc';
 
 function fmtMoney(n) {
   const v = Math.floor(Number(n || 0));
   return `$${v}`;
 }
 
+async function renderWallet() {
+  const sb = (window as any).supabase || window.supabase;
+  if (!sb) return;
 
-function renderWallet() {
-  const w = loadWalletLocal();
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
 
-  // wallet page
+  const userId = session.user.id;
+
+  // Fetch wallet balance from Supabase
+  const { data: wallet, error: wErr } = await sb
+    .from('wallet_balances')
+    .select('balance, monthly_fee, anchor_day, status')
+    .eq('user_id', userId)
+    .eq('tenant_slug', WALLET_TENANT)
+    .maybeSingle();
+
+  if (wErr) console.error('wallet fetch error:', wErr);
+
+  const balance    = Number(wallet?.balance    ?? 0);
+  const monthlyFee = Number(wallet?.monthly_fee ?? 50);
+  const anchorDay  = wallet?.anchor_day ?? null;
+  const status     = wallet?.status ?? 'active';
+
+  // Update wallet section
   const elBalance = document.getElementById('walletBalance');
-  const elFee = document.getElementById('walletMonthlyFee');
-  const elAnchor = document.getElementById('dashNextBill');
-  if (elBalance) elBalance.textContent = fmtMoney(w.balance);
-  if (elFee) elFee.innerHTML = `${fmtMoney(w.monthlyFee)}<div class="money-sub">/ 月</div>`;
+  const elFee     = document.getElementById('walletMonthlyFee');
+  const elAnchor  = document.getElementById('walletAnchorDay');
+  if (elBalance) elBalance.textContent = fmtMoney(balance);
+  if (elFee)     elFee.innerHTML = `${fmtMoney(monthlyFee)}<div class="money-sub">/ 月</div>`;
+  if (elAnchor)  elAnchor.textContent = anchorDay ? `每月 ${anchorDay} 日` : '首次充值后设定';
 
-  if (elAnchor) elAnchor.textContent = w.anchorDay ? `每月 ${w.anchorDay} 日` : '未设置';
-
-  // dashboard cards
-  const dBal = document.getElementById('dashBalance');
+  // Update dashboard cards
+  const dBal    = document.getElementById('dashBalance');
   const dStatus = document.getElementById('dashStatus');
-  const dNext = document.getElementById('dashNextBill');
-  if (dBal) dBal.textContent = fmtMoney(w.balance);
-  if (dStatus) dStatus.textContent = (w.status || 'active').toUpperCase();
-  if (dNext) dNext.textContent = w.anchorDay ? `每月 ${w.anchorDay} 日` : '—';
+  const dNext   = document.getElementById('dashNextBill');
+  if (dBal)    dBal.textContent    = fmtMoney(balance);
+  if (dStatus) dStatus.textContent = status.toUpperCase();
+  if (dNext)   dNext.textContent   = anchorDay ? `每月 ${anchorDay} 日` : '—';
 
-  // ✅ suspended 高亮 + 提示
-const isSuspended = (w.status || 'active') === 'suspended';
+  const isSuspended = status === 'suspended';
+  document.getElementById('dashBalanceCard')?.classList.toggle('danger', isSuspended);
+  document.getElementById('dashStatusCardBox')?.classList.toggle('danger', isSuspended);
+  document.getElementById('walletBalanceCard')?.classList.toggle('danger', isSuspended);
 
-const dashBalanceCard = document.getElementById('dashBalanceCard');
-const dashStatusCardBox = document.getElementById('dashStatusCardBox');
-const walletBalanceCard = document.getElementById('walletBalanceCard');
+  const alertHtml = isSuspended
+    ? `<div class="status-alert danger">⚠️ 账户已暂停（余额不足扣除月费 ${fmtMoney(monthlyFee)}）。请充值后自动恢复。</div>`
+    : `<div class="status-alert">✅ 订阅正常：每月从钱包扣除月费 ${fmtMoney(monthlyFee)}。</div>`;
+  const dashAlert   = document.getElementById('dashAlert');
+  const walletAlert = document.getElementById('walletAlert');
+  if (dashAlert)   dashAlert.innerHTML   = alertHtml;
+  if (walletAlert) walletAlert.innerHTML = alertHtml;
 
-dashBalanceCard?.classList.toggle('danger', isSuspended);
-dashStatusCardBox?.classList.toggle('danger', isSuspended);
-walletBalanceCard?.classList.toggle('danger', isSuspended);
+  // Fetch transactions
+  const { data: txs } = await sb
+    .from('wallet_transactions')
+    .select('type, amount, note, created_at, stripe_payment_intent_id')
+    .eq('user_id', userId)
+    .eq('tenant_slug', WALLET_TENANT)
+    .order('created_at', { ascending: false })
+    .limit(30);
 
-
-const dashAlert = document.getElementById('dashAlert');
-const walletAlert = document.getElementById('walletAlert');
-
-if (isSuspended) {
-  const html = `<div class="status-alert danger">⚠️ 账户已暂停（余额不足扣除月费 $${Math.floor(w.monthlyFee)}）。请先充值，充值到账后将自动恢复可用。</div>`;
-  if (dashAlert) dashAlert.innerHTML = html;
-  if (walletAlert) walletAlert.innerHTML = html;
-} else {
-  const html = `<div class="status-alert">✅ 订阅正常：每月从钱包扣除月费 ${fmtMoney(w.monthlyFee)}。</div>`;
-  if (dashAlert) dashAlert.innerHTML = html;
-  if (walletAlert) walletAlert.innerHTML = html;
-}
-
-
-
-
-  // tx table
   const wrap = document.getElementById('txWrap');
   if (!wrap) return;
-  const tx = w.tx || [];
-  if (tx.length === 0) {
-    wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🧾</div><p>暂无流水（先用充值产生记录）</p></div>`;
+
+  if (!txs || txs.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🧾</div><p>暂无流水（充值后将在这里显示）</p></div>`;
     return;
   }
 
   wrap.innerHTML = `
     <table class="tx-table">
       <thead>
-        <tr>
-          <th>时间</th>
-          <th>类型</th>
-          <th>金额</th>
-          <th>说明</th>
-        </tr>
+        <tr><th>时间</th><th>类型</th><th>金额</th><th>说明</th></tr>
       </thead>
       <tbody>
-        ${tx.map(t => `
+        ${txs.map(t => `
           <tr>
-            <td>${new Date(t.at).toLocaleString('zh-CN')}</td>
-            <td>${t.type}</td>
-            <td>${fmtMoney(t.amount)}</td>
+            <td>${new Date(t.created_at).toLocaleString('zh-CN')}</td>
+            <td>${t.type === 'recharge' ? '充值' : '扣费'}</td>
+            <td style="color:${t.amount >= 0 ? '#16a34a' : '#dc2626'}">${t.amount >= 0 ? '+' : ''}${fmtMoney(t.amount)}</td>
             <td>${t.note || ''}</td>
           </tr>
         `).join('')}
@@ -1975,85 +1966,98 @@ if (isSuspended) {
   `;
 }
 
-
-window.simulateMonthlyDeduct = function() {
-  const w = loadWalletLocal();
-  if (!w.anchorDay) {
-    alert('请先充值一次，生成扣费锚点日');
-    return;
-  }
-  if (w.balance >= w.monthlyFee) {
-    w.balance -= w.monthlyFee;
-    w.tx.unshift({ type: 'monthly_fee', amount: -w.monthlyFee, at: Date.now(), note: '模拟扣月费' });
-    w.status = 'active';
-    saveWalletLocal(w);
-    renderWallet();
-    alert('✅ 已模拟扣除月费');
-  } else {
-    w.status = 'suspended';
-    saveWalletLocal(w);
-    renderWallet();
-    alert('❌ 余额不足：已标记为暂停（suspended）');
-  }
-};
-// ✅ 充值弹窗：打开/关闭
+// 充值弹窗：打开/关闭
 window.openRechargeModal = function() {
   const modal = document.getElementById('recharge-modal');
-  if (!modal) {
-    alert('❌ recharge-modal 未加载：请确认弹窗HTML在 <body> 内，而不是 <style> 里');
-    return;
-  }
+  if (!modal) return;
   const input = document.getElementById('rechargeAmount');
   if (input) input.value = '';
   modal.style.display = 'flex';
   setTimeout(() => input?.focus(), 50);
 };
 
-
 window.closeRechargeModal = function() {
   document.getElementById('recharge-modal').style.display = 'none';
 };
 
-// ✅ 快捷按钮
+// 快捷金额按钮
 window.quickRecharge = function(amount) {
   const input = document.getElementById('rechargeAmount');
   if (!input) return;
-  const v = Number(input.value || 0);
-  input.value = String(v + Number(amount));
+  input.value = String(Number(input.value || 0) + Number(amount));
 };
 
-// ✅ 提交充值（本地钱包逻辑不变，只是入口变好看）
-window.submitRecharge = function() {
+// 提交充值 → 跳转 Stripe
+window.submitRecharge = async function() {
   const input = document.getElementById('rechargeAmount');
   const amt = Number(input?.value);
 
   if (!Number.isFinite(amt) || amt < 50) {
-  alert('最低充值金额为 $50');
-  return;
-}
-
-
-  const w = loadWalletLocal();
-  w.balance = Number(w.balance || 0) + amt;
-  w.tx.unshift({ type: 'recharge', amount: amt, at: Date.now(), note: '测试充值（后续接 Stripe）' });
-
-  if (!w.anchorDay) {
-    const d = new Date();
-    w.anchorDay = d.getDate();
+    alert('最低充值金额为 $50');
+    return;
   }
-  if (w.balance >= w.monthlyFee) w.status = 'active';
 
-  saveWalletLocal(w);
-  renderWallet();
-  closeRechargeModal();
-  alert('✅ 充值成功（本地测试）');
+  const sb = (window as any).supabase || window.supabase;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { alert('请先登录'); return; }
+
+  const submitBtn = document.querySelector('#recharge-modal .btn-submit');
+  if (submitBtn) { submitBtn.textContent = '跳转中...'; submitBtn.disabled = true; }
+
+  try {
+    const { data, error } = await sb.functions.invoke('create-checkout-session', {
+      body: { amount_usd: amt, tenant_slug: WALLET_TENANT },
+    });
+
+    if (error || !data?.url) {
+      throw new Error(error?.message || data?.error || '未知错误');
+    }
+
+    window.location.href = data.url;
+  } catch (err) {
+    alert('创建支付失败：' + err.message);
+    if (submitBtn) { submitBtn.textContent = '确认充值'; submitBtn.disabled = false; }
+  }
 };
 
-window.resetWallet = function() {
-  if (!confirm('确定要重置本地钱包吗？仅测试用。')) return;
-  localStorage.removeItem(WALLET_KEY);
-  renderWallet();
-  alert('✅ 已重置');
+// 模拟扣月费（测试用，写入 Supabase）
+window.simulateMonthlyDeduct = async function() {
+  const sb = (window as any).supabase || window.supabase;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  const userId = session.user.id;
+  const { data: wallet } = await sb
+    .from('wallet_balances')
+    .select('balance, monthly_fee, anchor_day, status')
+    .eq('user_id', userId)
+    .eq('tenant_slug', WALLET_TENANT)
+    .maybeSingle();
+
+  if (!wallet || !wallet.anchor_day) {
+    alert('请先充值一次，生成扣费锚点日');
+    return;
+  }
+
+  const balance    = Number(wallet.balance);
+  const monthlyFee = Number(wallet.monthly_fee ?? 50);
+
+  if (balance >= monthlyFee) {
+    const newBalance = balance - monthlyFee;
+    await sb.from('wallet_balances').update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('user_id', userId).eq('tenant_slug', WALLET_TENANT);
+    await sb.from('wallet_transactions').insert({
+      user_id: userId, tenant_slug: WALLET_TENANT,
+      type: 'monthly_fee', amount: -monthlyFee, note: '模拟扣月费',
+    });
+    await renderWallet();
+    alert('✅ 已模拟扣除月费');
+  } else {
+    await sb.from('wallet_balances').update({ status: 'suspended', updated_at: new Date().toISOString() })
+      .eq('user_id', userId).eq('tenant_slug', WALLET_TENANT);
+    await renderWallet();
+    alert('❌ 余额不足：已标记为暂停（suspended）');
+  }
 };
 
 // ✅ 在认证通过后也刷新钱包 UI

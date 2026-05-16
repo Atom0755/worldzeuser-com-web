@@ -6,8 +6,8 @@ const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-async function upsertSubscriptionRow(payload: any) {
-  const res = await fetch(`${supabaseUrl}/rest/v1/user_subscriptions`, {
+async function supabasePost(path: string, body: any) {
+  const res = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -15,13 +15,63 @@ async function upsertSubscriptionRow(payload: any) {
       "Authorization": `Bearer ${serviceRoleKey}`,
       "Prefer": "resolution=merge-duplicates",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Supabase upsert failed: ${res.status} ${txt}`);
+    throw new Error(`Supabase POST ${path} failed: ${res.status} ${txt}`);
   }
+  return res;
+}
+
+// Read current balance, then upsert with new balance
+async function topUpWallet(
+  userId: string,
+  tenantSlug: string,
+  amountUsd: number,
+  paymentIntentId: string
+) {
+  // Get existing row
+  const getRes = await fetch(
+    `${supabaseUrl}/rest/v1/wallet_balances?user_id=eq.${userId}&tenant_slug=eq.${tenantSlug}&select=balance,anchor_day`,
+    {
+      headers: {
+        "apikey": serviceRoleKey,
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
+    }
+  );
+
+  const rows = await getRes.json();
+  const existing = rows?.[0];
+  const currentBalance = Number(existing?.balance || 0);
+  const newBalance = currentBalance + amountUsd;
+
+  // anchor_day: set once on first top-up (day of month)
+  const anchorDay = existing?.anchor_day ?? new Date().getDate();
+
+  // Upsert wallet_balances
+  await supabasePost("wallet_balances", {
+    user_id: userId,
+    tenant_slug: tenantSlug,
+    balance: newBalance,
+    monthly_fee: 50,
+    anchor_day: anchorDay,
+    status: "active",
+    updated_at: new Date().toISOString(),
+  });
+
+  // Insert transaction record
+  await supabasePost("wallet_transactions", {
+    user_id: userId,
+    tenant_slug: tenantSlug,
+    type: "recharge",
+    amount: amountUsd,
+    stripe_payment_intent_id: paymentIntentId,
+    note: `Stripe 充值 $${amountUsd}`,
+    created_at: new Date().toISOString(),
+  });
 }
 
 serve(async (req) => {
@@ -31,7 +81,6 @@ serve(async (req) => {
     const sig = req.headers.get("stripe-signature");
     if (!sig) return new Response("Missing stripe-signature", { status: 400 });
 
-    // Stripe 需要“原始 body”
     const rawBody = await req.text();
 
     let event: Stripe.Event;
@@ -42,50 +91,43 @@ serve(async (req) => {
       return new Response("Invalid signature", { status: 400 });
     }
 
-    // 我们只处理订阅相关
-    if (event.type.startsWith("customer.subscription.")) {
-      const sub = event.data.object as Stripe.Subscription;
+    // Handle one-time payment success
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
 
-      const customerId =
-        typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-
-      // metadata 中保存 supabase_user_id（来自 create-checkout-session）
-      const userId = (sub.metadata?.supabase_user_id || "").trim();
-
-      // price id：取订阅第一条 item
-      const priceId = sub.items.data[0]?.price?.id ?? null;
-
-      // current_period_end 是秒，转成 timestamptz 用 ISO
-      const currentPeriodEnd = sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
-        : null;
-
-      // Stripe 状态映射（你表里用 text）
-      const status = sub.status; // active / trialing / canceled / unpaid / past_due...
-
-      // 没有 userId 时，不写（避免垃圾数据）
-      if (userId) {
-        await upsertSubscriptionRow({
-          user_id: userId,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: sub.id,
-          subscription_status: status,
-          subscription_price_id: priceId,
-          current_period_end: currentPeriodEnd,
-          updated_at: new Date().toISOString(),
-        });
-      } else {
-        console.warn("No supabase_user_id in metadata; skip upsert", {
-          subId: sub.id,
-          customerId,
+      // Only handle payment mode (wallet top-up), not subscriptions
+      if (session.mode !== "payment") {
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
         });
       }
+
+      const userId = (session.metadata?.supabase_user_id || "").trim();
+      const tenantSlug = (session.metadata?.tenant_slug || "").trim();
+      const amountUsd = Number(session.metadata?.amount_usd || 0);
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id ?? "";
+
+      if (!userId || !tenantSlug || amountUsd < 1) {
+        console.warn("Missing metadata in checkout session:", session.id);
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      await topUpWallet(userId, tenantSlug, amountUsd, paymentIntentId);
+      console.log(`✅ Wallet topped up: user=${userId} tenant=${tenantSlug} amount=$${amountUsd}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: err.message }), {
