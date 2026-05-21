@@ -137,6 +137,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             tenant_slug,
             title,
+            content_type: category,
             category,
             content: chunk,
             source_type: "auto_ingest",
