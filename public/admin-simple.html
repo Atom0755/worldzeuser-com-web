@@ -2165,6 +2165,7 @@ checkAuth = async function() {
                 const { error } = await supabase
                     .from('knowledge_base')
                     .insert([{
+                        tenant_slug: 'uscgcc',
                         title,
                         category,
                         content,
