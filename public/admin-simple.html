@@ -1150,6 +1150,21 @@
                     </form>
                 </div>
 
+                <!-- 批量导入区块 -->
+                <div class="form-section" style="margin-top:20px;">
+                    <h2>📤 批量导入（AI 自动切片）</h2>
+                    <div class="form-group">
+                        <label>来源说明（可选）</label>
+                        <input type="text" id="ingestSourceRef" placeholder="例如：商会章程2024版、官网FAQ">
+                    </div>
+                    <div class="form-group">
+                        <label>粘贴文本内容 <span>*</span> &nbsp;<small id="ingestCharCount" style="color:#94a3b8;font-weight:400;">0 / 50,000 字</small></label>
+                        <textarea id="ingestContent" placeholder="粘贴大段文字（段落之间留一个空行），AI 将自动分块、生成标题和向量..." style="min-height:180px;resize:vertical;" oninput="updateIngestCharCount()"></textarea>
+                    </div>
+                    <button type="button" onclick="batchIngest()" id="ingestBtn" class="submit-btn">🤖 开始 AI 自动导入</button>
+                    <div id="ingestStatus" style="margin-top:12px;padding:12px;border-radius:8px;display:none;font-size:0.85rem;line-height:1.6;"></div>
+                </div>
+
                 <div class="items-list">
                     <h3>📋 现有知识库</h3>
                     <div id="knowledgeList">
@@ -2153,6 +2168,62 @@ checkAuth = async function() {
             } catch (error) {
                 console.error('添加失败:', error);
                 alert('❌ 添加失败：' + error.message);
+            }
+        };
+
+        window.updateIngestCharCount = function() {
+            const len = (document.getElementById('ingestContent').value || '').length;
+            document.getElementById('ingestCharCount').textContent = `${len.toLocaleString()} / 50,000 字`;
+        };
+
+        window.batchIngest = async function() {
+            const content = (document.getElementById('ingestContent').value || '').trim();
+            const sourceRef = (document.getElementById('ingestSourceRef').value || '').trim() || '批量导入';
+            const btn = document.getElementById('ingestBtn');
+            const statusDiv = document.getElementById('ingestStatus');
+
+            if (!content) { alert('请输入要导入的文本内容'); return; }
+            if (content.length > 50000) { alert('内容超过 50,000 字限制，请分批导入'); return; }
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { alert('请先登录'); return; }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ AI 正在处理中...';
+            statusDiv.style.display = 'block';
+            statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:#1e293b;border:1px solid rgba(56,189,248,0.2);color:#94a3b8;';
+            statusDiv.textContent = '⏳ 正在切片并逐块生成标题和向量，可能需要 30–60 秒，请耐心等待...';
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/auto-ingest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({ tenant_slug: 'uscgcc', content, source_ref: sourceRef }),
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+                    statusDiv.innerHTML = `✅ 导入完成！共 <strong>${data.total_chunks}</strong> 个片段，成功写入 <strong>${data.inserted}</strong> 条${data.errors ? `<br>⚠️ ${data.errors.length} 条出错` : ''}`;
+                    document.getElementById('ingestContent').value = '';
+                    document.getElementById('ingestSourceRef').value = '';
+                    updateIngestCharCount();
+                    loadKnowledgeBase();
+                } else {
+                    statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+                    statusDiv.textContent = `❌ 导入失败：${data.error}`;
+                }
+            } catch (e) {
+                statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+                statusDiv.textContent = `❌ 网络错误：${e.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🤖 开始 AI 自动导入';
             }
         };
 
