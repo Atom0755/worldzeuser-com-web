@@ -62,13 +62,14 @@ export const USCGCCPage = `
         <div id="chat-box" style="display: flex; flex-direction: column; gap: 10px;"></div>
       </div>
 
-      <div style="padding: 5px 15px;">
-        <div style="display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 5px 8px 5px 8px; border-radius: 25px; border: 1px solid #38bdf8;">
-          <!-- AI 助手头像 -->
-          <div style="flex-shrink: 0; position: relative;">
-            <img id="bot-avatar" src="" alt="AI" style="display: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8;">
-            <div id="bot-avatar-default" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid #38bdf8;">🤖</div>
-          </div>
+      <div style="padding: 4px 15px; display: flex; align-items: center; gap: 10px;">
+        <!-- AI 助手头像：移到输入框外，高度约为输入框两倍 -->
+        <div style="flex-shrink: 0; position: relative;">
+          <img id="bot-avatar" src="" alt="AI" style="display: none; width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #38bdf8; box-shadow: 0 0 14px rgba(56,189,248,0.45);">
+          <div id="bot-avatar-default" style="width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 32px; border: 3px solid #38bdf8; box-shadow: 0 0 14px rgba(56,189,248,0.35);">🤖</div>
+        </div>
+        <!-- 提问输入框 -->
+        <div style="flex: 1; display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 5px 8px; border-radius: 25px; border: 1px solid #38bdf8;">
           <input id="chat-input" type="text" placeholder="请问商会近期活动？..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem; min-width: 0;">
           <button id="send-btn" style="width: 35px; height: 35px; border-radius: 50%; background: #38bdf8; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; flex-shrink: 0;">↑</button>
         </div>
