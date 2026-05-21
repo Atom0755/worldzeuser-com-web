@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         quantity: 1,
       }],
       success_url: `https://${slug}.worldzeuser.com/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://${slug}.worldzeuser.com/admin-simple.html`,
+      cancel_url: `https://${slug}.worldzeuser.com${req.headers.referer?.includes('profile') ? '/profile.html' : '/admin-simple.html'}`,
       metadata: {
         supabase_user_id: user_id || '',
         tenant_slug: slug,

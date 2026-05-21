@@ -564,7 +564,7 @@
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, userId: session.user.id, tenantSlug: TENANT }),
+        body: JSON.stringify({ amount_usd: amount, user_id: session.user.id, tenant_slug: TENANT }),
       });
       const json = await res.json();
       if (json.url) { window.location.href = json.url; }
