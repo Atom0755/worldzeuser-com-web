@@ -1178,7 +1178,15 @@
                 </div>
 
                 <div class="items-list">
-                    <h3>📋 现有知识库</h3>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                        <h3 style="margin:0;">📋 现有知识库</h3>
+                        <div style="flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:20px;padding:5px 14px;">
+                            <span style="color:#64748b;font-size:14px;">🔍</span>
+                            <input id="knowledgeSearch" type="text" placeholder="搜索标题或内容..." oninput="searchKnowledge(this.value)"
+                                style="flex:1;background:transparent;border:none;color:#e2e8f0;outline:none;font-size:0.82rem;">
+                            <button onclick="document.getElementById('knowledgeSearch').value='';searchKnowledge('');" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:14px;padding:0;line-height:1;">✕</button>
+                        </div>
+                    </div>
                     <div id="knowledgeList">
                         <div class="empty-state">
                             <div class="empty-state-icon">📦</div>
@@ -2194,6 +2202,130 @@ checkAuth = async function() {
             }
         };
 
+        // ── 知识库搜索 ──
+        window.searchKnowledge = async function(keyword) {
+            const listDiv = document.getElementById('knowledgeList');
+            keyword = (keyword || '').trim();
+
+            if (!keyword) {
+                // 空搜索：恢复正常分页列表
+                loadKnowledgeBase(true);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('knowledge_base')
+                    .select('*')
+                    .or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                const oldBtn = document.getElementById('knowledgeLoadMore');
+                if (oldBtn) oldBtn.remove();
+
+                if (data && data.length > 0) {
+                    listDiv.innerHTML = data.map(item => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div class="item-title">${item.title || '（无标题）'}</div>
+                                <div style="display:flex;gap:6px;align-items:center;">
+                                    ${item.auto_categorized ? '<span style="font-size:0.65rem;padding:2px 6px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);border-radius:4px;color:#38bdf8;">AI导入</span>' : ''}
+                                    <div class="item-category">${item.category || '未分类'}</div>
+                                </div>
+                            </div>
+                            <div class="item-content">${(item.content || '').substring(0, 150)}${(item.content || '').length > 150 ? '...' : ''}</div>
+                            <div class="item-meta">
+                                <span>${new Date(item.created_at || item.updated_at).toLocaleString('zh-CN')}</span>
+                                <div class="item-actions">
+                                    <button class="action-btn edit-btn" onclick="editKnowledge('${item.id}')">编辑</button>
+                                    <button class="action-btn delete-btn" onclick="deleteKnowledge('${item.id}')">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><p>未找到"${keyword}"相关内容</p></div>`;
+                }
+            } catch (e) {
+                console.error('搜索失败:', e);
+            }
+        };
+
+        // ── 删除知识库条目 ──
+        window.deleteKnowledge = async function(id) {
+            const ok = await openConfirmModal({
+                title: '确认删除',
+                message: '确定要删除这条知识库内容吗？（AI 将无法用它回答问题，不可恢复）',
+                skipKey: null
+            });
+            if (!ok) return;
+
+            try {
+                const { error } = await supabase.from('knowledge_base').delete().eq('id', id);
+                if (error) throw error;
+                alert('✅ 已删除');
+                const keyword = (document.getElementById('knowledgeSearch')?.value || '').trim();
+                keyword ? searchKnowledge(keyword) : loadKnowledgeBase(true);
+            } catch (e) {
+                alert('❌ 删除失败：' + e.message);
+            }
+        };
+
+        // ── 编辑知识库条目 ──
+        window.editKnowledge = async function(id) {
+            // 先拉取完整内容
+            const { data, error } = await supabase
+                .from('knowledge_base').select('*').eq('id', id).single();
+            if (error || !data) { alert('❌ 加载失败'); return; }
+
+            // 用简单弹窗编辑
+            const modal = document.createElement('div');
+            modal.id = 'editKBModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:14px;padding:22px;width:100%;max-width:560px;border:1px solid rgba(56,189,248,0.3);max-height:90vh;overflow-y:auto;">
+                    <div style="font-size:1rem;font-weight:700;color:#38bdf8;margin-bottom:14px;">✏️ 编辑知识库内容</div>
+                    <label style="font-size:0.8rem;color:#94a3b8;display:block;margin-bottom:4px;">标题</label>
+                    <input id="editKBTitle" value="${(data.title||'').replace(/"/g,'&quot;')}" style="width:100%;padding:8px 12px;background:#0f172a;border:1px solid rgba(56,189,248,0.25);border-radius:8px;color:#e2e8f0;font-size:0.88rem;margin-bottom:12px;box-sizing:border-box;">
+                    <label style="font-size:0.8rem;color:#94a3b8;display:block;margin-bottom:4px;">内容</label>
+                    <textarea id="editKBContent" style="width:100%;min-height:200px;padding:8px 12px;background:#0f172a;border:1px solid rgba(56,189,248,0.25);border-radius:8px;color:#e2e8f0;font-size:0.85rem;resize:vertical;box-sizing:border-box;">${data.content||''}</textarea>
+                    <div style="display:flex;gap:10px;margin-top:14px;">
+                        <button id="editKBSave" style="flex:1;padding:10px;background:#38bdf8;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">💾 保存</button>
+                        <button onclick="document.getElementById('editKBModal').remove()" style="padding:10px 20px;background:rgba(255,255,255,0.08);color:#e2e8f0;border:none;border-radius:8px;cursor:pointer;">取消</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+
+            document.getElementById('editKBSave').onclick = async () => {
+                const newTitle = document.getElementById('editKBTitle').value.trim();
+                const newContent = document.getElementById('editKBContent').value.trim();
+                if (!newContent) { alert('内容不能为空'); return; }
+                document.getElementById('editKBSave').textContent = '保存中...';
+                document.getElementById('editKBSave').disabled = true;
+
+                const { error: saveErr } = await supabase
+                    .from('knowledge_base')
+                    .update({ title: newTitle, content: newContent, updated_at: new Date().toISOString() })
+                    .eq('id', id);
+
+                if (saveErr) {
+                    alert('❌ 保存失败：' + saveErr.message);
+                    document.getElementById('editKBSave').textContent = '💾 保存';
+                    document.getElementById('editKBSave').disabled = false;
+                } else {
+                    modal.remove();
+                    const keyword = (document.getElementById('knowledgeSearch')?.value || '').trim();
+                    keyword ? searchKnowledge(keyword) : loadKnowledgeBase(true);
+                }
+            };
+
+            // 点背景关闭
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        };
+
         // 添加知识库
         window.addKnowledge = async function(event) {
             event.preventDefault();
@@ -2633,6 +2765,13 @@ checkAuth = async function() {
 
         // ── 新闻一键加入知识库 ──
         window.newsToKnowledge = async function(newsId, btn) {
+            const confirmed = await openConfirmModal({
+                title: '加入知识库',
+                message: '将这条新闻的内容 AI 自动分析后加入知识库，让 AI 助手能回答相关问题。确认开始？',
+                skipKey: null
+            });
+            if (!confirmed) return;
+
             if (btn) { btn.disabled = true; btn.textContent = '⏳ 导入中...'; }
 
             try {

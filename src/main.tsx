@@ -513,8 +513,8 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
           body: {
             tenant_slug: 'uscgcc',
             question: finalQuestion,
-            match_threshold: 0.5,
-            match_count: 5
+            match_threshold: 0.3,
+            match_count: 8
           }
         })
 
