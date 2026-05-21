@@ -241,7 +241,11 @@ function initUSCGCCPage() {
 
         titleEl.textContent = data.title || ''
         dateEl.textContent = data.publish_date || ''
-        contentEl.textContent = data.content || ''
+        contentEl.innerHTML = data.content || ''
+        ;(window as any)._currentNewsTitle = data.title || ''
+        // 检测移动端原生分享按钮
+        const nativeShareBtn = document.getElementById('share-native-btn') as HTMLElement | null
+        if (nativeShareBtn && (navigator as any).share) nativeShareBtn.style.display = 'inline-flex'
         modal.style.display = 'flex'
       } catch (e) {
         console.error('❌ 加载新闻详情失败', e)
@@ -591,6 +595,23 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
       })
     }
 
+    // 加载 AI 助手头像
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('bot_settings')
+          .select('avatar_url')
+          .eq('tenant_slug', 'uscgcc')
+          .single()
+        if (data?.avatar_url) {
+          const img = document.getElementById('bot-avatar') as HTMLImageElement | null
+          const def = document.getElementById('bot-avatar-default')
+          if (img) { img.src = data.avatar_url; img.style.display = 'block' }
+          if (def) (def as HTMLElement).style.display = 'none'
+        }
+      } catch (_) { /* 头像加载失败静默处理 */ }
+    })()
+
   // ✅ 弹窗：输入密码（带“显示/隐藏”）
 function askPasswordWithModal(email: string): Promise<string | null> {
   return new Promise((resolve) => {
@@ -793,6 +814,50 @@ if (verifyBtn && emailInput) {
   console.error('❌ 邮箱验证按钮或输入框未找到', { verifyBtn, emailInput })
 }
 }
+
+  // ── 新闻分享函数（全局可访问，供 onclick 调用）──
+  ;(window as any).shareNewsToWeChat = function() {
+    const url = window.location.href
+    const title = (window as any)._currentNewsTitle || document.title
+    const copyText = `📰 ${title}\n${url}`
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(copyText).then(() => {
+        alert('✅ 内容已复制！\n请打开微信，发送给好友并粘贴内容。')
+      }).catch(() => { prompt('请手动复制此链接，粘贴到微信好友：', url) })
+    } else {
+      prompt('请手动复制此链接，粘贴到微信好友：', url)
+    }
+  }
+
+  ;(window as any).shareNewsToMoments = function() {
+    const url = window.location.href
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('✅ 链接已复制！\n请打开微信朋友圈，在编辑时粘贴链接。')
+      }).catch(() => { prompt('请手动复制此链接，发布到朋友圈：', url) })
+    } else {
+      prompt('请手动复制此链接，发布到朋友圈：', url)
+    }
+  }
+
+  ;(window as any).copyNewsLink = function() {
+    const url = window.location.href
+    const btn = document.getElementById('copy-link-btn')
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        if (btn) { btn.textContent = '✅ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接' }, 2000) }
+      }).catch(() => { prompt('请手动复制：', url) })
+    } else {
+      prompt('请手动复制此链接：', url)
+    }
+  }
+
+  ;(window as any).shareViaNavigator = async function() {
+    const title = (window as any)._currentNewsTitle || document.title
+    try {
+      await (navigator as any).share({ title, url: window.location.href })
+    } catch (_) { /* user cancelled */ }
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {

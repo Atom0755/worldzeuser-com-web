@@ -63,9 +63,14 @@ export const USCGCCPage = `
       </div>
 
       <div style="padding: 5px 15px;">
-        <div style="display: flex; gap: 8px; background: #0f172a; padding: 5px 5px 5px 15px; border-radius: 25px; border: 1px solid #38bdf8;">
-          <input id="chat-input" type="text" placeholder="请问商会近期活动？..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem;">
-          <button id="send-btn" style="width: 35px; height: 35px; border-radius: 50%; background: #38bdf8; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s;">↑</button>
+        <div style="display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 5px 8px 5px 8px; border-radius: 25px; border: 1px solid #38bdf8;">
+          <!-- AI 助手头像 -->
+          <div style="flex-shrink: 0; position: relative;">
+            <img id="bot-avatar" src="" alt="AI" style="display: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8;">
+            <div id="bot-avatar-default" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid #38bdf8;">🤖</div>
+          </div>
+          <input id="chat-input" type="text" placeholder="请问商会近期活动？..." style="flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 0.85rem; min-width: 0;">
+          <button id="send-btn" style="width: 35px; height: 35px; border-radius: 50%; background: #38bdf8; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; flex-shrink: 0;">↑</button>
         </div>
       </div>
 
@@ -89,14 +94,31 @@ export const USCGCCPage = `
 
     <!-- 新闻全文弹窗 -->
     <div id="news-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
-      <div style="background: #1e293b; border-radius: 20px; max-width: 90%; max-height: 80vh; width: 500px; position: relative; overflow: hidden; border: 2px solid rgba(56, 189, 248, 0.3);">
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8);">
-          <h3 id="modal-title" style="margin: 0; color: #38bdf8; font-size: 1.1rem;"></h3>
-          <button id="close-modal" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
+      <div style="background: #1e293b; border-radius: 20px; max-width: 92%; max-height: 85vh; width: 520px; position: relative; overflow: hidden; border: 2px solid rgba(56, 189, 248, 0.3); display: flex; flex-direction: column;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); flex-shrink: 0;">
+          <h3 id="modal-title" style="margin: 0; color: #38bdf8; font-size: 1rem; flex: 1; padding-right: 10px; line-height: 1.4;"></h3>
+          <button id="close-modal" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">×</button>
         </div>
-        <div style="padding: 20px; overflow-y: auto; max-height: calc(80vh - 100px);">
-          <div id="modal-date" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;"></div>
-          <div id="modal-content" style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap;"></div>
+        <div style="flex: 1; padding: 16px 20px; overflow-y: auto;">
+          <div id="modal-date" style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 12px;"></div>
+          <div id="modal-content" style="color: #e2e8f0; font-size: 0.88rem; line-height: 1.7; word-break: break-word;"></div>
+        </div>
+        <!-- 分享按钮栏 -->
+        <div id="modal-share-bar" style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(15,23,42,0.6); display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
+          <span style="font-size: 0.75rem; color: #64748b; flex-shrink: 0;">分享：</span>
+          <button onclick="shareNewsToWeChat()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:#07c160;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:500;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 13.5c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm7 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zM12 2C6.477 2 2 6.477 2 12c0 5.522 4.477 10 10 10s10-4.478 10-10c0-5.523-4.477-10-10-10zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"/></svg>
+            微信
+          </button>
+          <button onclick="shareNewsToMoments()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:#1a7f45;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:500;">
+            🌟 朋友圈
+          </button>
+          <button onclick="copyNewsLink()" id="copy-link-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(255,255,255,0.08);color:#e2e8f0;border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:0.75rem;">
+            🔗 复制链接
+          </button>
+          <button onclick="shareViaNavigator()" id="share-native-btn" style="display:none;padding:6px 12px;background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);border-radius:8px;cursor:pointer;font-size:0.75rem;">
+            📤 分享
+          </button>
         </div>
       </div>
     </div>
@@ -349,6 +371,62 @@ export const USCGCCPage = `
       document.getElementById('logo-img').addEventListener('click', () => {
         window.location.href = '/admin-simple.html';
       });
+
+      // 分享功能（微信/朋友圈/复制链接）
+      let _currentNewsTitle = '';
+      const _origOpenModal = openModalWithNews;
+      window.openModalWithNews = function(news) {
+        _currentNewsTitle = news?.title || '';
+        _origOpenModal(news);
+        // 如果浏览器支持 Web Share API（移动端），显示原生分享按钮
+        if (navigator.share) {
+          const btn = document.getElementById('share-native-btn');
+          if (btn) btn.style.display = 'inline-flex';
+        }
+      };
+
+      window.shareNewsToWeChat = function() {
+        const title = _currentNewsTitle || document.title;
+        const url = window.location.href;
+        const text = `📰 ${title}\n${url}\n（长按复制后粘贴到微信好友）`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(() => {
+            alert('✅ 链接已复制！\n请打开微信，发送给好友或粘贴到聊天框。');
+          }).catch(() => prompt('请手动复制此链接：', url));
+        } else {
+          prompt('请手动复制此链接，粘贴到微信好友：', url);
+        }
+      };
+
+      window.shareNewsToMoments = function() {
+        const url = window.location.href;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(() => {
+            alert('✅ 链接已复制！\n请打开微信朋友圈，点击发布时粘贴链接。');
+          }).catch(() => prompt('请手动复制此链接：', url));
+        } else {
+          prompt('请手动复制此链接，发布到朋友圈：', url);
+        }
+      };
+
+      window.copyNewsLink = function() {
+        const url = window.location.href;
+        const btn = document.getElementById('copy-link-btn');
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(() => {
+            if (btn) { btn.textContent = '✅ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000); }
+          }).catch(() => prompt('请手动复制：', url));
+        } else {
+          prompt('请手动复制此链接：', url);
+        }
+      };
+
+      window.shareViaNavigator = async function() {
+        const title = _currentNewsTitle || document.title;
+        try {
+          await navigator.share({ title, url: window.location.href });
+        } catch(e) { /* user cancelled */ }
+      };
 
       // 页面加载时加载新闻
       loadNews();

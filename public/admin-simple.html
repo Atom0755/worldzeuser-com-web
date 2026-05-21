@@ -1109,9 +1109,13 @@
             <button class="tab-btn" onclick="switchTab('news')" data-tab="news">
                 📰 动态新闻
             </button>
-            <button class="tab-btn" onclick="switchTab('conversations')" data-tab="conversations">
+            <button class="tab-btn" onclick="switchTab('conversations')" data-tab="conversations" style="display:flex;align-items:center;gap:8px;">
                 🤖 AI对话内容
+                <span onclick="event.stopPropagation(); document.getElementById('avatarFileInput').click();"
+                      title="上传 AI 助手头像（JPEG/PNG/GIF，建议200×200，不超过2MB）"
+                      style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#38bdf8;color:white;border-radius:50%;font-size:14px;cursor:pointer;line-height:1;flex-shrink:0;" >+</span>
             </button>
+            <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="uploadBotAvatar(event)">
         </div>
 
         <!-- 知识库管理标签 -->
@@ -1246,6 +1250,20 @@
                     <button class="bulk-btn select-all" onclick="selectAllConversations()">全选</button>
                     <button class="bulk-btn bulk-approve" onclick="bulkAddToKnowledge()">批量添加到知识库</button>
                     <button class="bulk-btn bulk-reject" onclick="bulkRejectConversations()">批量忽略</button>
+                </div>
+
+                <!-- 头像预览与上传说明 -->
+                <div style="display:flex;align-items:center;gap:15px;margin-bottom:15px;padding:12px 16px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:10px;">
+                    <div style="flex-shrink:0;position:relative;">
+                        <img id="adminAvatarPreview" src="" alt="头像" style="display:none;width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid #38bdf8;">
+                        <div id="adminAvatarDefault" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:26px;border:3px solid #38bdf8;">🤖</div>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#e2e8f0;margin-bottom:4px;">AI 助手头像</div>
+                        <div style="font-size:0.75rem;color:#94a3b8;line-height:1.5;">支持 JPEG / PNG / GIF（含动图）<br>建议尺寸 200×200px，文件不超过 2MB</div>
+                        <div id="avatarUploadStatus" style="font-size:0.75rem;color:#38bdf8;margin-top:4px;"></div>
+                    </div>
+                    <button onclick="document.getElementById('avatarFileInput').click()" style="padding:8px 16px;background:#38bdf8;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:500;flex-shrink:0;">📷 更换头像</button>
                 </div>
 
                 <div class="items-list">
@@ -2110,6 +2128,7 @@ checkAuth = async function() {
             loadNews();
             loadConversations();
             refreshTrashBadge();
+            loadCurrentAvatar();
         }
 
         // 加载知识库
@@ -2614,6 +2633,80 @@ checkAuth = async function() {
             checkboxes.forEach(cb => cb.checked = !allChecked);
         };
 
+        // ── 加载并显示当前头像 ──
+        async function loadCurrentAvatar() {
+            const { data } = await supabase
+                .from('bot_settings')
+                .select('avatar_url')
+                .eq('tenant_slug', 'uscgcc')
+                .single();
+            if (data?.avatar_url) {
+                const img = document.getElementById('adminAvatarPreview');
+                const def = document.getElementById('adminAvatarDefault');
+                if (img) { img.src = data.avatar_url; img.style.display = 'block'; }
+                if (def) def.style.display = 'none';
+            }
+        }
+
+        // ── 上传 AI 助手头像 ──
+        window.uploadBotAvatar = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('avatarUploadStatus');
+            if (statusEl) statusEl.textContent = '⏳ 上传中...';
+
+            try {
+                // 1. 获取 session（拿 access_token 用于 Storage 上传）
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('请先登录');
+
+                const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+                const path = `uscgcc/avatar.${ext}`;
+                const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+
+                // 2. 上传到 Storage（用 upsert 覆盖旧文件）
+                const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/bot-avatars/${path}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': file.type,
+                        'x-upsert': 'true',
+                    },
+                    body: file,
+                });
+
+                if (!uploadRes.ok) {
+                    const errText = await uploadRes.text();
+                    throw new Error('上传失败: ' + errText);
+                }
+
+                // 3. 构造公共 URL（加时间戳防缓存）
+                const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/bot-avatars/${path}?t=${Date.now()}`;
+
+                // 4. 保存到 bot_settings
+                const { error: upsertErr } = await supabase
+                    .from('bot_settings')
+                    .upsert({ tenant_slug: 'uscgcc', avatar_url: publicUrl, updated_at: new Date().toISOString() },
+                             { onConflict: 'tenant_slug' });
+                if (upsertErr) throw upsertErr;
+
+                // 5. 更新预览
+                const img = document.getElementById('adminAvatarPreview');
+                const def = document.getElementById('adminAvatarDefault');
+                if (img) { img.src = publicUrl; img.style.display = 'block'; }
+                if (def) def.style.display = 'none';
+                if (statusEl) statusEl.textContent = '✅ 头像已更新！';
+                setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+
+            } catch (e) {
+                console.error('头像上传失败:', e);
+                if (statusEl) statusEl.textContent = '❌ 上传失败：' + e.message;
+            }
+            // 清空 input，允许重复选同一文件
+            event.target.value = '';
+        };
+
         // 加载AI对话
         window.loadConversations = async function() {
             try {
@@ -2738,12 +2831,15 @@ checkAuth = async function() {
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
 
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById(tabName + '-tab').classList.add('active');
+
+            // 切换到对话 tab 时刷新头像预览
+            if (tabName === 'conversations') loadCurrentAvatar();
         };
 
         // 退出登录
