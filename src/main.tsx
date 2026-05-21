@@ -416,17 +416,37 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
         .replace(/\n/g, '<br>')
     }
 
+    function speakText(text: string) {
+      if (!window.speechSynthesis) return
+      window.speechSynthesis.cancel()
+      const plain = text.replace(/<[^>]+>/g, '').replace(/\*+/g, '').replace(/#+/g, '').trim()
+      const utter = new SpeechSynthesisUtterance(plain)
+      const hasChinese = /[一-鿿]/.test(plain)
+      utter.lang = hasChinese ? 'zh-CN' : 'en-US'
+      utter.rate = 0.95
+      window.speechSynthesis.speak(utter)
+    }
+
     function addMessage(text: string, isUser = false) {
       if (!chatBox) return
 
       const msgDiv = document.createElement('div')
       msgDiv.style.cssText = isUser
         ? 'align-self: flex-end; max-width: 85%; padding: 12px; background: #38bdf8; border-radius: 15px; border-bottom-right-radius: 2px; font-size: 0.85rem; color: white; word-wrap: break-word;'
-        : 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2); word-wrap: break-word; line-height: 1.5;'
+        : 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2); word-wrap: break-word; line-height: 1.5; position: relative;'
       if (isUser) {
         msgDiv.textContent = text
       } else {
         msgDiv.innerHTML = renderMarkdown(text)
+        // 朗读按钮
+        const speakBtn = document.createElement('button')
+        speakBtn.innerHTML = '🔊'
+        speakBtn.title = '朗读'
+        speakBtn.style.cssText = 'position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:0.5;padding:2px 4px;border-radius:4px;'
+        speakBtn.onmouseenter = () => { speakBtn.style.opacity = '1' }
+        speakBtn.onmouseleave = () => { speakBtn.style.opacity = '0.5' }
+        speakBtn.onclick = () => speakText(text)
+        msgDiv.appendChild(speakBtn)
       }
       chatBox.appendChild(msgDiv)
 
@@ -504,6 +524,19 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
 
         if (data && data.ok && data.answer) {
           addMessage(data.answer)
+          // 保存对话到 Supabase（供管理后台查看）
+          supabase.from('conversations').insert({
+            tenant_slug: 'uscgcc',
+            user_id: session.user.id,
+            title: finalQuestion.slice(0, 50),
+            messages: [
+              { role: 'user', content: finalQuestion },
+              { role: 'assistant', content: data.answer }
+            ],
+            updated_at: new Date().toISOString()
+          }).then(({ error: saveErr }) => {
+            if (saveErr) console.warn('对话保存失败:', saveErr.message)
+          })
         } else if (data && data.error) {
           addMessage('抱歉：' + data.error)
         } else {

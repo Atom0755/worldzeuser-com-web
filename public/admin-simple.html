@@ -2113,12 +2113,18 @@ checkAuth = async function() {
         }
 
         // 加载知识库
-        window.loadKnowledgeBase = async function() {
+        let knowledgePage = 0;
+        const KNOWLEDGE_PAGE_SIZE = 15;
+
+        window.loadKnowledgeBase = async function(reset = true) {
+            if (reset) knowledgePage = 0;
             try {
+                const from = knowledgePage * KNOWLEDGE_PAGE_SIZE;
                 const { data, error } = await supabase
                     .from('knowledge_base')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .range(from, from + KNOWLEDGE_PAGE_SIZE - 1);
 
                 if (error) throw error;
 
@@ -2126,7 +2132,7 @@ checkAuth = async function() {
                 
                 const listDiv = document.getElementById('knowledgeList');
                 if (data && data.length > 0) {
-                    listDiv.innerHTML = data.map(item => `
+                    const html = data.map(item => `
                         <div class="item-card">
                             <div class="item-header">
                                 <div class="item-title">${item.title || '（无标题）'}</div>
@@ -2145,7 +2151,23 @@ checkAuth = async function() {
                             </div>
                         </div>
                     `).join('');
-                } else {
+                    if (reset) {
+                        listDiv.innerHTML = html;
+                    } else {
+                        listDiv.innerHTML += html;
+                    }
+                    // 加载更多按钮
+                    const oldBtn = document.getElementById('knowledgeLoadMore');
+                    if (oldBtn) oldBtn.remove();
+                    if (data.length === KNOWLEDGE_PAGE_SIZE) {
+                        const btn = document.createElement('button');
+                        btn.id = 'knowledgeLoadMore';
+                        btn.textContent = '加载更多...';
+                        btn.style.cssText = 'display:block;width:100%;margin-top:12px;padding:10px;background:transparent;border:1px solid rgba(56,189,248,0.3);color:#38bdf8;border-radius:8px;cursor:pointer;font-size:0.85rem;';
+                        btn.onclick = () => { knowledgePage++; loadKnowledgeBase(false); };
+                        listDiv.appendChild(btn);
+                    }
+                } else if (reset) {
                     listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>暂无知识库内容</p></div>';
                 }
             } catch (error) {
@@ -2392,7 +2414,7 @@ checkAuth = async function() {
                                             ? `<button class="action-btn edit-btn" onclick="toggleHideNews('${item.id}','published')">显示</button>`
                                             : `<button class="action-btn edit-btn" onclick="toggleHideNews('${item.id}','hidden')">隐藏</button>`
                                         }
-                                        <button class="action-btn delete-btn" onclick="(async()=>{ await (async function(){ await (async function(){ await (async function(){ await (async function(){ await moveToTrash('${item.id}'); })(); })(); })(); })(); })()">删除</button>
+                                        <button class="action-btn delete-btn" onclick="moveToTrash('${item.id}')">删除</button>
                                     </div>
                                 </div>
                             </div>
