@@ -2001,17 +2001,14 @@ window.submitRecharge = async function() {
   if (submitBtn) { submitBtn.textContent = '跳转中...'; submitBtn.disabled = true; }
 
   try {
-    const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhybmVkcXJuenFzZXV1eG1lZ3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NzM1NzAsImV4cCI6MjA4MzE0OTU3MH0.s6RfEtIOF8zGEH7NfmAg0dKn6RS8ekxSZjdt3KYBO4c';
-
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+    const res = await fetch('/api/create-checkout', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ amount_usd: amt, tenant_slug: WALLET_TENANT }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount_usd: amt,
+        tenant_slug: WALLET_TENANT,
+        user_id: session.user.id,
+      }),
     });
 
     const data = await res.json();
