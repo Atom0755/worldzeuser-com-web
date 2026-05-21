@@ -2418,7 +2418,12 @@ checkAuth = async function() {
                                         ${item.title}
                                         ${isHidden ? `<span class="hidden-badge">已隐藏</span>` : ``}
                                     </div>
-                                    <div class="item-category">${item.in_knowledge_base ? '✓ 知识库' : '未入库'}</div>
+                                    <div class="item-category">
+                                        ${item.in_knowledge_base
+                                            ? '<span style="color:#86efac;">✓ 知识库</span>'
+                                            : `<button onclick="newsToKnowledge('${item.id}', this)" style="padding:3px 10px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;cursor:pointer;font-size:0.75rem;font-weight:500;transition:all 0.2s;">➕ 加入知识库</button>`
+                                        }
+                                    </div>
                                 </div>
                                 <div class="item-meta" style="margin-bottom: 8px;">
                                     <span>📅 ${item.publish_date || '未设置日期'}</span>
@@ -2623,6 +2628,65 @@ checkAuth = async function() {
             } catch (error) {
                 console.error('批量拒绝失败:', error);
                 alert('❌ 批量拒绝失败：' + error.message);
+            }
+        };
+
+        // ── 新闻一键加入知识库 ──
+        window.newsToKnowledge = async function(newsId, btn) {
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ 导入中...'; }
+
+            try {
+                // 1. 拉取新闻完整内容
+                const { data: news, error } = await supabase
+                    .from('news')
+                    .select('title, content, publish_date')
+                    .eq('id', newsId)
+                    .single();
+                if (error) throw error;
+
+                // 2. 去除 HTML 标签，组装纯文本内容
+                const stripHtml = (html) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                const plainContent = [
+                    news.title ? `标题：${news.title}` : '',
+                    news.publish_date ? `日期：${news.publish_date}` : '',
+                    stripHtml(news.content),
+                ].filter(Boolean).join('\n\n');
+
+                if (!plainContent || plainContent.length < 10) throw new Error('新闻内容太短，无法导入');
+
+                // 3. 获取 session token
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('请先登录');
+
+                // 4. 调用 auto-ingest Edge Function
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/auto-ingest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({
+                        tenant_slug: 'uscgcc',
+                        content: plainContent,
+                        source_ref: news.title || '新闻导入',
+                    }),
+                });
+
+                const data = await res.json();
+                if (!data.ok) throw new Error(data.error || '导入失败');
+
+                // 5. 标记 in_knowledge_base = true
+                await supabase.from('news').update({ in_knowledge_base: true }).eq('id', newsId);
+
+                alert(`✅ 已加入知识库！共 ${data.total_chunks} 个片段，成功 ${data.inserted} 条`);
+                await loadNews();
+                loadKnowledgeBase();
+
+            } catch (e) {
+                console.error('新闻导入知识库失败:', e);
+                alert('❌ 导入失败：' + e.message);
+                if (btn) { btn.disabled = false; btn.textContent = '➕ 加入知识库'; }
             }
         };
 
