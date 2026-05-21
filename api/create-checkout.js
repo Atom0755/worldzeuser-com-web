@@ -13,8 +13,8 @@ export default async function handler(req, res) {
   try {
     const { amount_usd, tenant_slug, user_id } = req.body;
 
-    if (!amount_usd || Number(amount_usd) < 1) {
-      return res.status(400).json({ error: '金额不能为空' });
+    if (!amount_usd || Number(amount_usd) < 30) {
+      return res.status(400).json({ error: '最低充值金额为 $30' });
     }
 
     const amountCents = Math.round(Number(amount_usd) * 100);

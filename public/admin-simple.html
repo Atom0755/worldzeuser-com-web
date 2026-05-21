@@ -1405,14 +1405,15 @@
 
       <div class="form-group" style="margin-bottom:14px;">
         <label>充值金额（USD）<span>*</span></label>
-        <input id="rechargeAmount" type="number" min="1" step="1" placeholder="例如：50">
+        <input id="rechargeAmount" type="number" min="30" step="1" placeholder="最低 $30">
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
        
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">+$50</button>
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">+$100</button>
-        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">+$200</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(30)">$30</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(50)">$50</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(100)">$100</button>
+        <button class="bulk-btn select-all" type="button" onclick="quickRecharge(200)">$200</button>
       </div>
       <div class="confirm-modal-footer">
   <button class="btn-cancel" onclick="closeRechargeModal()">取消</button>
@@ -1976,11 +1977,11 @@ window.closeRechargeModal = function() {
   document.getElementById('recharge-modal').style.display = 'none';
 };
 
-// 快捷金额按钮
+// 快捷金额按钮（直接设置金额）
 window.quickRecharge = function(amount) {
   const input = document.getElementById('rechargeAmount');
   if (!input) return;
-  input.value = String(Number(input.value || 0) + Number(amount));
+  input.value = String(amount);
 };
 
 // 提交充值 → 跳转 Stripe
@@ -1988,8 +1989,8 @@ window.submitRecharge = async function() {
   const input = document.getElementById('rechargeAmount');
   const amt = Number(input?.value);
 
-  if (!Number.isFinite(amt) || amt < 1) {
-    alert('请输入充值金额');
+  if (!Number.isFinite(amt) || amt < 30) {
+    alert('最低充值金额为 $30');
     return;
   }
 
