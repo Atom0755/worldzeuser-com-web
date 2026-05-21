@@ -534,7 +534,7 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
               { role: 'assistant', content: data.answer }
             ],
             updated_at: new Date().toISOString()
-          }).then(({ error: saveErr }) => {
+          }).then(({ error: saveErr }: { error: { message: string } | null }) => {
             if (saveErr) console.warn('对话保存失败:', saveErr.message)
           })
         } else if (data && data.error) {
