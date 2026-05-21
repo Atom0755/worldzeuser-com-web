@@ -372,62 +372,6 @@ export const USCGCCPage = `
         window.location.href = '/admin-simple.html';
       });
 
-      // 分享功能（微信/朋友圈/复制链接）
-      let _currentNewsTitle = '';
-      const _origOpenModal = openModalWithNews;
-      window.openModalWithNews = function(news) {
-        _currentNewsTitle = news?.title || '';
-        _origOpenModal(news);
-        // 如果浏览器支持 Web Share API（移动端），显示原生分享按钮
-        if (navigator.share) {
-          const btn = document.getElementById('share-native-btn');
-          if (btn) btn.style.display = 'inline-flex';
-        }
-      };
-
-      window.shareNewsToWeChat = function() {
-        const title = _currentNewsTitle || document.title;
-        const url = window.location.href;
-        const text = `📰 ${title}\n${url}\n（长按复制后粘贴到微信好友）`;
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(url).then(() => {
-            alert('✅ 链接已复制！\n请打开微信，发送给好友或粘贴到聊天框。');
-          }).catch(() => prompt('请手动复制此链接：', url));
-        } else {
-          prompt('请手动复制此链接，粘贴到微信好友：', url);
-        }
-      };
-
-      window.shareNewsToMoments = function() {
-        const url = window.location.href;
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(url).then(() => {
-            alert('✅ 链接已复制！\n请打开微信朋友圈，点击发布时粘贴链接。');
-          }).catch(() => prompt('请手动复制此链接：', url));
-        } else {
-          prompt('请手动复制此链接，发布到朋友圈：', url);
-        }
-      };
-
-      window.copyNewsLink = function() {
-        const url = window.location.href;
-        const btn = document.getElementById('copy-link-btn');
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(url).then(() => {
-            if (btn) { btn.textContent = '✅ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000); }
-          }).catch(() => prompt('请手动复制：', url));
-        } else {
-          prompt('请手动复制此链接：', url);
-        }
-      };
-
-      window.shareViaNavigator = async function() {
-        const title = _currentNewsTitle || document.title;
-        try {
-          await navigator.share({ title, url: window.location.href });
-        } catch(e) { /* user cancelled */ }
-      };
-
       // 页面加载时加载新闻
       loadNews();
             refreshAuthUI();
