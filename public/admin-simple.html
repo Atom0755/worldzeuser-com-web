@@ -1755,7 +1755,7 @@
             }
         };
 
-        async function permanentlyDelete(ids, opts = {}) {
+        window.permanentlyDelete = async function(ids, opts = {}) {
             const skipKey = 'skipTrashDeleteConfirm';
             const skip = localStorage.getItem(skipKey) === '1';
 
@@ -1785,9 +1785,9 @@
                 console.error('永久删除失败:', e);
                 alert('❌ 操作失败：' + e.message);
             }
-        }
+        };
 
-        async function moveToTrash(newsId) {
+        window.moveToTrash = async function(newsId) {
             const skipKey = 'skipMoveToTrashConfirm';
             const skip = localStorage.getItem(skipKey) === '1';
 
@@ -1815,7 +1815,7 @@
                 console.error('移到垃圾箱失败:', e);
                 alert('❌ 操作失败：' + e.message);
             }
-        }
+        };
 
         window.toggleHideNews = async function(newsId, nextStatus) {
             try {
