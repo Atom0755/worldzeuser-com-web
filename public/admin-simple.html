@@ -2285,7 +2285,7 @@ checkAuth = async function() {
 
                 if (data.ok) {
                     statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
-                    statusDiv.innerHTML = `✅ 导入完成！共 <strong>${data.total_chunks}</strong> 个片段，成功写入 <strong>${data.inserted}</strong> 条${data.errors ? `<br>⚠️ ${data.errors.length} 条出错` : ''}`;
+                    statusDiv.innerHTML = `✅ 导入完成！共 <strong>${data.total_chunks}</strong> 个片段，成功写入 <strong>${data.inserted}</strong> 条${data.errors ? `<br>⚠️ ${data.errors.length} 条出错，第一条：<code style="font-size:0.8em">${data.errors[0]}</code>` : ''}`;
                     document.getElementById('ingestContent').value = '';
                     document.getElementById('ingestSourceRef').value = '';
                     updateIngestCharCount();
