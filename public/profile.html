@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USCGCC 个人主页</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      padding-bottom: 40px;
+    }
+
+    /* ── 顶栏 ── */
+    .topbar {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-back {
+      display: flex; align-items: center; gap: 6px;
+      color: #38bdf8; font-size: 0.85rem; text-decoration: none; cursor: pointer;
+    }
+    .topbar-title { flex: 1; font-size: 0.95rem; font-weight: 600; color: #e2e8f0; text-align: center; }
+    .topbar-logout {
+      font-size: 0.8rem; padding: 5px 12px; border-radius: 999px;
+      border: 1px solid rgba(248,113,113,0.35); color: #fecaca;
+      background: rgba(248,113,113,0.08); cursor: pointer;
+    }
+
+    /* ── 用户卡片 ── */
+    .user-card {
+      max-width: 600px; margin: 20px auto 0; padding: 0 16px;
+    }
+    .user-card-inner {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+    .user-avatar-circle {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: white;
+      border: 3px solid #38bdf8; flex-shrink: 0;
+    }
+    .user-email { font-size: 0.9rem; color: #e2e8f0; font-weight: 500; margin-bottom: 4px; word-break: break-all; }
+    .user-since { font-size: 0.75rem; color: #64748b; }
+    .member-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      margin-top: 6px;
+    }
+    .badge-pending  { background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24; }
+    .badge-approved { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.4);  color: #4ade80; }
+    .badge-rejected { background: rgba(248,113,113,0.12);border: 1px solid rgba(248,113,113,0.35);color: #fca5a5; }
+    .badge-none     { background: rgba(100,116,139,0.15);border: 1px solid rgba(100,116,139,0.3); color: #94a3b8; }
+
+    /* ── 标签切换 ── */
+    .tabs-wrap { max-width: 600px; margin: 18px auto 0; padding: 0 16px; }
+    .tab-btns {
+      display: flex; gap: 0;
+      background: rgba(15,23,42,0.6);
+      border: 1px solid rgba(56,189,248,0.18);
+      border-radius: 12px; overflow: hidden;
+    }
+    .tab-btn {
+      flex: 1; padding: 11px 4px; font-size: 0.8rem; font-weight: 500;
+      border: none; background: transparent; color: #94a3b8; cursor: pointer;
+      transition: all 0.2s; border-right: 1px solid rgba(56,189,248,0.1);
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn.active { background: rgba(56,189,248,0.15); color: #38bdf8; }
+
+    /* ── 内容区 ── */
+    .tab-panel { max-width: 600px; margin: 16px auto 0; padding: 0 16px; display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── 表单 ── */
+    .form-card {
+      background: rgba(30,41,59,0.7);
+      border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 16px; padding: 20px;
+    }
+    .form-card h3 { font-size: 0.95rem; color: #38bdf8; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 5px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 9px 12px;
+      background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 8px; color: #e2e8f0; font-size: 0.85rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      border-color: rgba(56,189,248,0.5);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .btn-primary {
+      width: 100%; padding: 11px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .save-status { text-align: center; font-size: 0.8rem; color: #4ade80; margin-top: 8px; min-height: 20px; }
+
+    /* ── 对话列表 ── */
+    .conv-item {
+      background: rgba(30,41,59,0.7); border: 1px solid rgba(56,189,248,0.12);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+    }
+    .conv-title { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .conv-date  { font-size: 0.72rem; color: #64748b; margin-bottom: 8px; }
+    .conv-messages { display: none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; margin-top: 4px; }
+    .conv-messages.open { display: block; }
+    .conv-msg { padding: 7px 10px; border-radius: 8px; margin-bottom: 6px; font-size: 0.8rem; line-height: 1.5; }
+    .conv-msg.user { background: rgba(56,189,248,0.12); color: #bae6fd; text-align: right; }
+    .conv-msg.assistant { background: rgba(30,41,59,0.8); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.05); }
+    .conv-msg .role { font-size: 0.68rem; color: #64748b; margin-bottom: 3px; }
+
+    /* ── 会员状态 ── */
+    .status-card {
+      background: rgba(30,41,59,0.7); border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 16px; padding: 22px; text-align: center; margin-bottom: 16px;
+    }
+    .status-icon { font-size: 48px; margin-bottom: 12px; }
+    .status-text { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+    .status-sub  { font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
+
+    /* ── 钱包 ── */
+    .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .wallet-box {
+      background: rgba(30,41,59,0.7); border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 14px; padding: 16px; text-align: center;
+    }
+    .wallet-box .num { font-size: 1.8rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
+    .wallet-box .lbl { font-size: 0.75rem; color: #64748b; }
+
+    /* ── 空状态 ── */
+    .empty-tip { text-align: center; padding: 40px 0; color: #64748b; font-size: 0.85rem; }
+    .empty-tip .icon { font-size: 36px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+  <a class="topbar-back" href="/" >← 返回商会</a>
+  <div class="topbar-title">USCGCC 个人主页</div>
+  <button class="topbar-logout" id="logoutBtn">退出</button>
+</div>
+
+<!-- 用户卡片 -->
+<div class="user-card">
+  <div class="user-card-inner">
+    <div class="user-avatar-circle" id="avatarCircle">?</div>
+    <div style="flex:1;min-width:0;">
+      <div class="user-email" id="userEmail">加载中...</div>
+      <div class="user-since" id="userSince"></div>
+      <div id="memberBadge"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 按钮 -->
+<div class="tabs-wrap">
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="switchTab('info')">👤 个人信息</button>
+    <button class="tab-btn" onclick="switchTab('chats')">💬 对话历史</button>
+    <button class="tab-btn" onclick="switchTab('member')">🏅 会员申请</button>
+    <button class="tab-btn" onclick="switchTab('wallet')">💰 我的钱包</button>
+  </div>
+</div>
+
+<!-- ① 个人信息 Tab -->
+<div class="tab-panel active" id="tab-info">
+  <div class="form-card">
+    <h3>📝 基本资料</h3>
+    <div class="form-group">
+      <label>姓名</label>
+      <input id="pFullName" type="text" placeholder="请输入真实姓名">
+    </div>
+    <div class="form-group">
+      <label>所属公司 / 机构</label>
+      <input id="pCompany" type="text" placeholder="公司或机构名称">
+    </div>
+    <div class="form-group">
+      <label>职务 / 职称</label>
+      <input id="pPosition" type="text" placeholder="总裁 / 经理 / 会员 ...">
+    </div>
+    <div class="form-group">
+      <label>联系电话</label>
+      <input id="pPhone" type="tel" placeholder="+1-xxx-xxx-xxxx">
+    </div>
+    <div class="form-group">
+      <label>简介（可选）</label>
+      <textarea id="pBio" placeholder="一两句话介绍自己..."></textarea>
+    </div>
+    <button class="btn-primary" id="saveProfileBtn" onclick="saveProfile()">💾 保存资料</button>
+    <div class="save-status" id="saveStatus"></div>
+  </div>
+</div>
+
+<!-- ② 对话历史 Tab -->
+<div class="tab-panel" id="tab-chats">
+  <div id="chatsList">
+    <div class="empty-tip"><div class="icon">💬</div>加载中...</div>
+  </div>
+</div>
+
+<!-- ③ 会员申请 Tab -->
+<div class="tab-panel" id="tab-member">
+  <div id="memberContent">
+    <div class="empty-tip"><div class="icon">🏅</div>加载中...</div>
+  </div>
+</div>
+
+<!-- ④ 钱包 Tab -->
+<div class="tab-panel" id="tab-wallet">
+  <div class="wallet-grid">
+    <div class="wallet-box">
+      <div class="num" id="wBalance">--</div>
+      <div class="lbl">当前余额</div>
+    </div>
+    <div class="wallet-box">
+      <div class="num" id="wFee" style="font-size:1.3rem;">--</div>
+      <div class="lbl">月服务费</div>
+    </div>
+  </div>
+  <div class="form-card" style="margin-bottom:14px;">
+    <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px;line-height:1.6;">
+      账户状态：<span id="wStatus" style="font-weight:600;">--</span><br>
+      下次扣费：<span id="wAnchor">--</span>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <input id="topupAmount" type="number" placeholder="充值金额 ($)" min="1"
+        style="flex:1;padding:9px 12px;background:rgba(15,23,42,0.8);border:1px solid rgba(56,189,248,0.2);border-radius:8px;color:#e2e8f0;font-size:0.85rem;outline:none;">
+      <button onclick="doTopup()" class="btn-primary" style="flex:0 0 auto;width:auto;padding:9px 18px;margin-top:0;">充值</button>
+    </div>
+    <div id="topupMsg" style="font-size:0.75rem;color:#94a3b8;margin-top:6px;"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://hrnedqrnzqseuuxmegsb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3_j109YmeDowhqaIda2HLQ_PuzH6mio';
+  const TENANT = 'uscgcc';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+
+  // ── Tab 切换 ──
+  window.switchTab = function(name) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      const names = ['info','chats','member','wallet'];
+      b.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'chats')  loadChats();
+    if (name === 'member') loadMember();
+    if (name === 'wallet') loadWallet();
+  };
+
+  // ── 头像首字母 ──
+  function initials(email, name) {
+    if (name && name.trim()) {
+      const parts = name.trim().split(/\s+/);
+      return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    }
+    return (email || '?')[0].toUpperCase();
+  }
+
+  // ── 加载页面 ──
+  async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/'; return; }
+
+    currentUser = session.user;
+    const email = currentUser.email || '';
+    document.getElementById('userEmail').textContent = email;
+    document.getElementById('avatarCircle').textContent = initials(email, '');
+
+    const since = new Date(currentUser.created_at || Date.now()).toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('userSince').textContent = '注册于 ' + since;
+
+    // 加载个人资料
+    await loadProfile();
+    // 加载会员状态徽章
+    await loadMemberBadge();
+  }
+
+  // ── 个人资料 ──
+  async function loadProfile() {
+    const { data } = await supabase.from('profiles').select('*').eq('user_id', currentUser.id).single();
+    if (data) {
+      document.getElementById('pFullName').value  = data.full_name || '';
+      document.getElementById('pCompany').value   = data.company   || '';
+      document.getElementById('pPosition').value  = data.position  || '';
+      document.getElementById('pPhone').value     = data.phone     || '';
+      document.getElementById('pBio').value       = data.bio       || '';
+      const circle = document.getElementById('avatarCircle');
+      if (data.full_name) circle.textContent = initials(currentUser.email, data.full_name);
+    }
+  }
+
+  window.saveProfile = async function() {
+    const btn = document.getElementById('saveProfileBtn');
+    const status = document.getElementById('saveStatus');
+    btn.disabled = true; btn.textContent = '保存中...';
+    status.textContent = '';
+
+    const payload = {
+      user_id:    currentUser.id,
+      tenant_slug: TENANT,
+      full_name:  document.getElementById('pFullName').value.trim(),
+      company:    document.getElementById('pCompany').value.trim(),
+      position:   document.getElementById('pPosition').value.trim(),
+      phone:      document.getElementById('pPhone').value.trim(),
+      bio:        document.getElementById('pBio').value.trim(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+
+    if (error) {
+      status.style.color = '#fca5a5';
+      status.textContent = '❌ 保存失败：' + error.message;
+    } else {
+      status.style.color = '#4ade80';
+      status.textContent = '✅ 已保存';
+      const circle = document.getElementById('avatarCircle');
+      if (payload.full_name) circle.textContent = initials(currentUser.email, payload.full_name);
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    }
+    btn.disabled = false; btn.textContent = '💾 保存资料';
+  };
+
+  // ── 对话历史 ──
+  async function loadChats() {
+    const listDiv = document.getElementById('chatsList');
+    listDiv.innerHTML = '<div class="empty-tip"><div class="icon">⏳</div>加载中...</div>';
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('updated_at', { ascending: false })
+      .limit(30);
+
+    if (error || !data || data.length === 0) {
+      listDiv.innerHTML = '<div class="empty-tip"><div class="icon">💬</div>暂无对话记录<br><small style="color:#475569;margin-top:4px;display:block;">去 AI 助手提问后会在这里显示</small></div>';
+      return;
+    }
+
+    listDiv.innerHTML = data.map((conv, idx) => {
+      const msgs = Array.isArray(conv.messages) ? conv.messages : [];
+      const date = new Date(conv.updated_at || conv.created_at).toLocaleString('zh-CN');
+      const msgsHtml = msgs.map(m => `
+        <div class="conv-msg ${m.role}">
+          <div class="role">${m.role === 'user' ? '👤 我' : '🤖 AI助手'}</div>
+          ${String(m.content || '').replace(/</g,'&lt;').substring(0, 300)}
+        </div>`).join('');
+      return `
+        <div class="conv-item" onclick="toggleConv(${idx})">
+          <div class="conv-title">${conv.title || '对话记录'}</div>
+          <div class="conv-date">📅 ${date} · ${msgs.length} 条消息</div>
+          <div class="conv-messages" id="conv-${idx}">${msgsHtml}</div>
+        </div>`;
+    }).join('');
+  }
+
+  window.toggleConv = function(idx) {
+    const el = document.getElementById('conv-' + idx);
+    if (el) el.classList.toggle('open');
+  };
+
+  // ── 会员徽章（卡片上方） ──
+  async function loadMemberBadge() {
+    const { data } = await supabase
+      .from('membership_applications')
+      .select('status')
+      .eq('user_id', currentUser.id)
+      .eq('tenant_slug', TENANT)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const el = document.getElementById('memberBadge');
+    if (!data) {
+      el.innerHTML = '<span class="member-badge badge-none">非会员</span>';
+    } else if (data.status === 'approved') {
+      el.innerHTML = '<span class="member-badge badge-approved">✓ 正式会员</span>';
+    } else if (data.status === 'pending') {
+      el.innerHTML = '<span class="member-badge badge-pending">⏳ 申请审核中</span>';
+    } else if (data.status === 'rejected') {
+      el.innerHTML = '<span class="member-badge badge-rejected">✗ 申请未通过</span>';
+    }
+  }
+
+  // ── 会员申请 Tab ──
+  async function loadMember() {
+    const el = document.getElementById('memberContent');
+    el.innerHTML = '<div class="empty-tip"><div class="icon">⏳</div>加载中...</div>';
+
+    const { data } = await supabase
+      .from('membership_applications')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .eq('tenant_slug', TENANT)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (data && data.status === 'approved') {
+      el.innerHTML = `
+        <div class="status-card">
+          <div class="status-icon">🎉</div>
+          <div class="status-text" style="color:#4ade80;">恭喜！您已是正式会员</div>
+          <div class="status-sub">申请提交于 ${new Date(data.created_at).toLocaleDateString('zh-CN')}</div>
+        </div>`;
+    } else if (data && data.status === 'pending') {
+      el.innerHTML = `
+        <div class="status-card">
+          <div class="status-icon">⏳</div>
+          <div class="status-text" style="color:#fbbf24;">申请审核中</div>
+          <div class="status-sub">您的入会申请已提交，商会工作人员将在 3-5 个工作日内审核。<br>如有问题请联系商会邮箱。</div>
+        </div>`;
+    } else if (data && data.status === 'rejected') {
+      el.innerHTML = `
+        <div class="status-card">
+          <div class="status-icon">😔</div>
+          <div class="status-text" style="color:#fca5a5;">申请未通过</div>
+          <div class="status-sub">${data.admin_notes ? '原因：' + data.admin_notes : '如有疑问请联系商会工作人员。'}</div>
+        </div>
+        <div class="form-card">
+          <h3>重新申请入会</h3>
+          ${memberFormHtml()}
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="form-card">
+          <h3>🏅 申请加入 USCGCC 商会</h3>
+          <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:16px;line-height:1.6;">
+            填写以下信息提交入会申请，商会工作人员将审核后与您联系。
+          </p>
+          ${memberFormHtml()}
+        </div>`;
+    }
+  }
+
+  function memberFormHtml() {
+    // 预填已有资料
+    const profile = {
+      fullName: document.getElementById('pFullName').value,
+      company:  document.getElementById('pCompany').value,
+      position: document.getElementById('pPosition').value,
+      phone:    document.getElementById('pPhone').value,
+    };
+    return `
+      <div class="form-group">
+        <label>姓名 <span style="color:#ef4444">*</span></label>
+        <input id="mFullName" type="text" placeholder="真实姓名" value="${profile.fullName}" required>
+      </div>
+      <div class="form-group">
+        <label>公司 / 机构 <span style="color:#ef4444">*</span></label>
+        <input id="mCompany" type="text" placeholder="公司或机构名称" value="${profile.company}" required>
+      </div>
+      <div class="form-group">
+        <label>职务</label>
+        <input id="mPosition" type="text" placeholder="职务或职称" value="${profile.position}">
+      </div>
+      <div class="form-group">
+        <label>联系电话 <span style="color:#ef4444">*</span></label>
+        <input id="mPhone" type="tel" placeholder="+1-xxx-xxx-xxxx" value="${profile.phone}" required>
+      </div>
+      <div class="form-group">
+        <label>申请理由 <span style="color:#ef4444">*</span></label>
+        <textarea id="mPurpose" placeholder="请简述您希望加入商会的理由及期望..." style="min-height:100px;" required></textarea>
+      </div>
+      <button class="btn-primary" onclick="submitMember()">📨 提交入会申请</button>
+      <div class="save-status" id="memberStatus"></div>`;
+  }
+
+  window.submitMember = async function() {
+    const name    = (document.getElementById('mFullName')?.value || '').trim();
+    const company = (document.getElementById('mCompany')?.value  || '').trim();
+    const phone   = (document.getElementById('mPhone')?.value    || '').trim();
+    const purpose = (document.getElementById('mPurpose')?.value  || '').trim();
+    const status  = document.getElementById('memberStatus');
+
+    if (!name || !company || !phone || !purpose) {
+      if (status) { status.style.color='#fca5a5'; status.textContent='❌ 请填写所有必填项'; }
+      return;
+    }
+
+    if (status) status.textContent = '提交中...';
+
+    const { error } = await supabase.from('membership_applications').insert({
+      user_id:    currentUser.id,
+      tenant_slug: TENANT,
+      full_name:  name,
+      company,
+      position:   (document.getElementById('mPosition')?.value || '').trim(),
+      phone,
+      purpose,
+      status:     'pending',
+    });
+
+    if (error) {
+      if (status) { status.style.color='#fca5a5'; status.textContent='❌ 提交失败：' + error.message; }
+    } else {
+      await loadMember();
+      await loadMemberBadge();
+    }
+  };
+
+  // ── 钱包 ──
+  async function loadWallet() {
+    const { data } = await supabase
+      .from('wallet_balances')
+      .select('balance, monthly_fee, anchor_day, status')
+      .eq('user_id', currentUser.id)
+      .eq('tenant_slug', TENANT)
+      .maybeSingle();
+
+    const balance    = Math.floor(Number(data?.balance    ?? 0));
+    const monthlyFee = Math.floor(Number(data?.monthly_fee ?? 50));
+    const anchorDay  = data?.anchor_day;
+    const wStatus    = data?.status ?? 'active';
+
+    document.getElementById('wBalance').textContent = '$' + balance;
+    document.getElementById('wFee').textContent     = '$' + monthlyFee + '/月';
+    document.getElementById('wStatus').textContent  = wStatus === 'suspended' ? '⚠️ 已暂停（余额不足）' : '✅ 正常';
+    document.getElementById('wStatus').style.color  = wStatus === 'suspended' ? '#fca5a5' : '#4ade80';
+    document.getElementById('wAnchor').textContent  = anchorDay ? `每月 ${anchorDay} 日` : '首次充值后设定';
+  }
+
+  window.doTopup = async function() {
+    const amount = parseInt(document.getElementById('topupAmount').value || '0', 10);
+    const msg    = document.getElementById('topupMsg');
+    if (!amount || amount < 1) { msg.textContent = '请输入充值金额'; return; }
+    msg.textContent = '跳转 Stripe 支付页面...';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, userId: session.user.id, tenantSlug: TENANT }),
+      });
+      const json = await res.json();
+      if (json.url) { window.location.href = json.url; }
+      else { msg.textContent = '❌ ' + (json.error || '支付创建失败'); }
+    } catch (e) {
+      msg.textContent = '❌ 网络错误：' + e.message;
+    }
+  };
+
+  // ── 退出 ──
+  document.getElementById('logoutBtn').onclick = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
+
+  // ── 启动 ──
+  init();
+</script>
+</body>
+</html>

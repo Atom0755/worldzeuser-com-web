@@ -26,9 +26,10 @@ export const USCGCCPage = `
     ">
       <div style="padding: 15px; background: rgba(30, 41, 59, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 8px; position: relative;">
   
-  <!-- ✅ 右上角：登录后显示邮箱 + 退出 -->
-  <div id="auth-bar" style="position:absolute; right:12px; top:12px; display:none; align-items:center; gap:8px;">
-    <span id="user-email" style="font-size:10px; color:#94a3b8; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+  <!-- ✅ 右上角：登录后显示邮箱 + 个人主页 + 退出 -->
+  <div id="auth-bar" style="position:absolute; right:12px; top:12px; display:none; align-items:center; gap:6px; flex-wrap:nowrap;">
+    <span id="user-email" style="font-size:10px; color:#94a3b8; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+    <a href="/profile.html" style="font-size:10px; padding:4px 10px; border-radius:999px; border:1px solid rgba(56,189,248,0.35); color:#38bdf8; background:rgba(56,189,248,0.08); cursor:pointer; text-decoration:none; white-space:nowrap;">我的主页</a>
     <button id="logout-btn" style="font-size:10px; padding:4px 10px; border-radius:999px; border:1px solid rgba(248,113,113,.35); color:#fecaca; background: rgba(248,113,113,.08); cursor:pointer;">
       退出
     </button>
