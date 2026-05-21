@@ -404,14 +404,30 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
 })
 
 
+    function renderMarkdown(text: string): string {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.+)$/gm, '<div style="font-weight:700;margin:6px 0 2px">$1</div>')
+        .replace(/^## (.+)$/gm, '<div style="font-weight:700;margin:8px 0 2px">$1</div>')
+        .replace(/^# (.+)$/gm, '<div style="font-weight:700;margin:8px 0 2px">$1</div>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^[-*] (.+)$/gm, '<div style="padding-left:12px">• $1</div>')
+        .replace(/\n/g, '<br>')
+    }
+
     function addMessage(text: string, isUser = false) {
       if (!chatBox) return
 
       const msgDiv = document.createElement('div')
       msgDiv.style.cssText = isUser
         ? 'align-self: flex-end; max-width: 85%; padding: 12px; background: #38bdf8; border-radius: 15px; border-bottom-right-radius: 2px; font-size: 0.85rem; color: white; word-wrap: break-word;'
-        : 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2); word-wrap: break-word;'
-      msgDiv.textContent = text
+        : 'align-self: flex-start; max-width: 90%; padding: 12px; background: #1e293b; border-radius: 15px; border-bottom-left-radius: 2px; font-size: 0.85rem; border: 1px solid rgba(56,189,248,0.2); word-wrap: break-word; line-height: 1.5;'
+      if (isUser) {
+        msgDiv.textContent = text
+      } else {
+        msgDiv.innerHTML = renderMarkdown(text)
+      }
       chatBox.appendChild(msgDiv)
 
       if (chatContainer) {
