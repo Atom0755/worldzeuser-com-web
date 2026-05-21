@@ -7,7 +7,11 @@
     
     <!-- 引入Quill富文本编辑器 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>  
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <!-- 文件解析库：PDF / Word / Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         * {
@@ -1161,7 +1165,11 @@
                         <label>粘贴文本内容 <span>*</span> &nbsp;<small id="ingestCharCount" style="color:#94a3b8;font-weight:400;">0 / 50,000 字</small></label>
                         <textarea id="ingestContent" placeholder="粘贴大段文字（段落之间留一个空行），AI 将自动分块、生成标题和向量..." style="min-height:180px;resize:vertical;" oninput="updateIngestCharCount()"></textarea>
                     </div>
-                    <button type="button" onclick="batchIngest()" id="ingestBtn" class="submit-btn">🤖 开始 AI 自动导入</button>
+                    <div style="display:flex;gap:10px;">
+                        <button type="button" onclick="batchIngest()" id="ingestBtn" class="submit-btn" style="flex:1;">🤖 开始 AI 自动导入</button>
+                        <button type="button" onclick="document.getElementById('fileIngestInput').click()" class="submit-btn" style="flex:0 0 auto;min-width:130px;background:linear-gradient(135deg,#334155,#475569);" title="支持 PDF、Word、Excel、TXT">📎 + 选择文件</button>
+                        <input type="file" id="fileIngestInput" accept=".txt,.pdf,.docx,.doc,.xlsx,.xls,.csv" style="display:none" onchange="handleFileIngest(event)">
+                    </div>
                     <div id="ingestStatus" style="margin-top:12px;padding:12px;border-radius:8px;display:none;font-size:0.85rem;line-height:1.6;"></div>
                 </div>
 
@@ -2121,12 +2129,15 @@ checkAuth = async function() {
                     listDiv.innerHTML = data.map(item => `
                         <div class="item-card">
                             <div class="item-header">
-                                <div class="item-title">${item.title}</div>
-                                <div class="item-category">${item.category || '未分类'}</div>
+                                <div class="item-title">${item.title || '（无标题）'}</div>
+                                <div style="display:flex;gap:6px;align-items:center;">
+                                    ${item.auto_categorized ? '<span style="font-size:0.65rem;padding:2px 6px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);border-radius:4px;color:#38bdf8;">AI导入</span>' : ''}
+                                    <div class="item-category">${item.category || '未分类'}</div>
+                                </div>
                             </div>
-                            <div class="item-content">${item.content.substring(0, 150)}...</div>
+                            <div class="item-content">${(item.content || '').substring(0, 150)}${(item.content || '').length > 150 ? '...' : ''}</div>
                             <div class="item-meta">
-                                <span>${new Date(item.created_at).toLocaleString('zh-CN')}</span>
+                                <span>${new Date(item.created_at || item.updated_at).toLocaleString('zh-CN')}</span>
                                 <div class="item-actions">
                                     <button class="action-btn edit-btn" onclick="editKnowledge('${item.id}')">编辑</button>
                                     <button class="action-btn delete-btn" onclick="deleteKnowledge('${item.id}')">删除</button>
@@ -2168,6 +2179,71 @@ checkAuth = async function() {
             } catch (error) {
                 console.error('添加失败:', error);
                 alert('❌ 添加失败：' + error.message);
+            }
+        };
+
+        window.handleFileIngest = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = ''; // 允许重复选同一文件
+
+            const statusDiv = document.getElementById('ingestStatus');
+            statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:#1e293b;border:1px solid rgba(56,189,248,0.2);color:#94a3b8;';
+            statusDiv.textContent = `⏳ 正在读取文件：${file.name}...`;
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            let text = '';
+
+            try {
+                if (ext === 'txt' || ext === 'csv' || ext === 'md') {
+                    text = await file.text();
+
+                } else if (ext === 'pdf') {
+                    if (typeof pdfjsLib === 'undefined') throw new Error('PDF 库未加载，请刷新页面重试');
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const parts = [];
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        parts.push(content.items.map(s => s.str).join(' '));
+                    }
+                    text = parts.join('\n\n');
+
+                } else if (ext === 'docx' || ext === 'doc') {
+                    if (typeof mammoth === 'undefined') throw new Error('Word 库未加载，请刷新页面重试');
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    text = result.value;
+
+                } else if (ext === 'xlsx' || ext === 'xls') {
+                    if (typeof XLSX === 'undefined') throw new Error('Excel 库未加载，请刷新页面重试');
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const parts = workbook.SheetNames.map(name => {
+                        const sheet = workbook.Sheets[name];
+                        return `【${name}】\n` + XLSX.utils.sheet_to_csv(sheet);
+                    });
+                    text = parts.join('\n\n');
+
+                } else {
+                    throw new Error(`不支持的文件格式 .${ext}，支持：PDF、Word（docx）、Excel（xlsx）、TXT`);
+                }
+
+                text = text.trim();
+                if (!text) throw new Error('文件内容为空或无法提取文字');
+
+                document.getElementById('ingestContent').value = text;
+                document.getElementById('ingestSourceRef').value = file.name;
+                updateIngestCharCount();
+
+                statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+                statusDiv.textContent = `✅ 文件读取成功（${text.length.toLocaleString()} 字），确认内容后点"开始 AI 自动导入"`;
+
+            } catch (e) {
+                statusDiv.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+                statusDiv.textContent = `❌ 读取失败：${e.message}`;
             }
         };
 
