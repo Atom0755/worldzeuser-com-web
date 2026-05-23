@@ -3011,8 +3011,9 @@ checkAuth = async function() {
                         const avatarHtml = prof.avatar_url
                             ? `<img src="${prof.avatar_url}" onerror="this.style.display='none'">`
                             : initials;
+                        // 使用 data-action 代替 onclick，由事件委托处理
                         const userChip = conv.user_id
-                            ? `<span class="conv-user-chip" onclick="showUserProfileModal('${conv.user_id}')">
+                            ? `<span class="conv-user-chip" data-action="view-profile" data-uid="${conv.user_id}">
                                 <span class="conv-user-initials">${avatarHtml}</span>${displayName}
                                </span>`
                             : '';
@@ -3023,9 +3024,6 @@ checkAuth = async function() {
                                     <input type="checkbox" class="conversation-checkbox" data-id="${conv.id}">
                                     <div style="flex: 1;">
                                         ${userChip}
-                                        <div class="item-header">
-                                            <div class="item-title">${conv.title || '对话记录'}</div>
-                                        </div>
                                         <div class="conversation-messages">
                                             ${messages.map(msg => `
                                                 <div class="conversation-message ${msg.role}">
@@ -3036,8 +3034,8 @@ checkAuth = async function() {
                                         <div class="item-meta">
                                             <span>${new Date(conv.updated_at).toLocaleString('zh-CN')}</span>
                                             <div class="item-actions">
-                                                <button class="action-btn approve-btn" onclick="addConversationToKnowledge('${conv.id}')">✏️ 编辑并加入知识库</button>
-                                                <button class="action-btn reject-btn" onclick="ignoreConversation('${conv.id}')">忽略</button>
+                                                <button class="action-btn approve-btn" data-action="edit-knowledge" data-cid="${conv.id}">✏️ 编辑并加入知识库</button>
+                                                <button class="action-btn reject-btn" data-action="ignore" data-cid="${conv.id}">忽略</button>
                                             </div>
                                         </div>
                                     </div>
@@ -3068,6 +3066,24 @@ checkAuth = async function() {
         window.closeModal = closeModal;
         window.closeConvEditModal    = () => closeModal('convEditModal');
         window.closeUserProfileModal = () => closeModal('userProfileModal');
+
+        // 事件委托：统一处理对话列表中的所有点击（替代 inline onclick，避免 module 作用域问题）
+        document.getElementById('conversationsList').addEventListener('click', function(e) {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            const action = el.dataset.action;
+            if (action === 'view-profile' && el.dataset.uid)   window.showUserProfileModal(el.dataset.uid);
+            if (action === 'edit-knowledge' && el.dataset.cid) window.addConversationToKnowledge(el.dataset.cid);
+            if (action === 'ignore' && el.dataset.cid)         window.ignoreConversation(el.dataset.cid);
+        });
+
+        // 忽略/删除对话记录
+        window.ignoreConversation = async function(conversationId) {
+            if (!confirm('确定忽略（删除）这条对话记录？')) return;
+            const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+            if (error) { alert('❌ 操作失败：' + error.message); return; }
+            loadConversations();
+        };
 
         // 打开编辑弹窗 —— 先开 modal，再赋值（避免 null 阻断 openModal）
         window.addConversationToKnowledge = async function(conversationId) {
