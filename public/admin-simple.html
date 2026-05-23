@@ -3054,8 +3054,19 @@ checkAuth = async function() {
             }
         };
 
-        // 打开编辑弹窗（不直接插入，先让管理员编辑）
+        // 关闭/开 modal 辅助（用 style 避免 CSS 优先级问题）
+        function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        window.closeConvEditModal    = () => closeModal('convEditModal');
+        window.closeUserProfileModal = () => closeModal('userProfileModal');
+
+        // 打开编辑弹窗（先显示 modal，后台加载数据）
         window.addConversationToKnowledge = async function(conversationId) {
+            document.getElementById('convEditTitle').value   = '';
+            document.getElementById('convEditContent').value = '⏳ 加载中...';
+            document.getElementById('convEditSourceId').value = conversationId;
+            openModal('convEditModal');
+
             try {
                 const { data: conv, error } = await supabase
                     .from('conversations').select('*').eq('id', conversationId).single();
@@ -3065,13 +3076,11 @@ checkAuth = async function() {
                 const userQ = messages.filter(m => m.role === 'user').map(m => m.content).join('\n');
                 const aiA  = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n');
                 const title = (messages.find(m => m.role === 'user')?.content || '从对话生成').substring(0, 60);
-                const content = `问题：\n${userQ}\n\n回答：\n${aiA}`;
 
-                document.getElementById('convEditTitle').value = title;
-                document.getElementById('convEditContent').value = content;
-                document.getElementById('convEditSourceId').value = conversationId;
-                document.getElementById('convEditModal').classList.add('open');
+                document.getElementById('convEditTitle').value   = title;
+                document.getElementById('convEditContent').value = `问题：\n${userQ}\n\n回答：\n${aiA}`;
             } catch (e) {
+                document.getElementById('convEditContent').value = '';
                 alert('❌ 加载失败：' + e.message);
             }
         };
@@ -3084,13 +3093,12 @@ checkAuth = async function() {
             if (!title || !content) { alert('标题和内容不能为空'); return; }
 
             const { error } = await supabase.from('knowledge_base').insert([{
-                title, category, content, source_type: 'conversation',
-                tenant_slug: 'uscgcc'
+                title, category, content, source_type: 'conversation', tenant_slug: 'uscgcc'
             }]);
 
             if (error) { alert('❌ 添加失败：' + error.message); return; }
 
-            document.getElementById('convEditModal').classList.remove('open');
+            closeModal('convEditModal');
             alert('✅ 已添加到知识库！');
             loadKnowledgeBase();
             loadConversations();
@@ -3098,10 +3106,9 @@ checkAuth = async function() {
 
         // 查看用户资料弹窗
         window.showUserProfileModal = async function(userId) {
-            const modal = document.getElementById('userProfileModal');
             const content = document.getElementById('userProfileContent');
             content.innerHTML = '⏳ 加载中...';
-            modal.classList.add('open');
+            openModal('userProfileModal');
 
             const { data: prof } = await supabase.from('profiles')
                 .select('*').eq('user_id', userId).maybeSingle();
@@ -3117,7 +3124,7 @@ checkAuth = async function() {
 
             content.innerHTML = `
                 <div class="user-profile-card">
-                    <button onclick="document.getElementById('userProfileModal').classList.remove('open')"
+                    <button onclick="closeUserProfileModal()"
                         style="float:right;border:none;background:none;font-size:20px;cursor:pointer;color:#999;">✕</button>
                     <div class="user-profile-head">${avatarHtml}
                         <div>
@@ -3216,7 +3223,7 @@ checkAuth = async function() {
     </script>
 
     <!-- ── 编辑对话再添加到知识库 Modal ── -->
-    <div id="convEditModal">
+    <div id="convEditModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.55);justify-content:center;align-items:center;">
         <div class="conv-modal-inner">
             <h3>✏️ 编辑后添加到知识库</h3>
             <label>标题</label>
@@ -3231,14 +3238,14 @@ checkAuth = async function() {
             <textarea id="convEditContent"></textarea>
             <input type="hidden" id="convEditSourceId">
             <div class="conv-modal-btns">
-                <button class="action-btn reject-btn" onclick="document.getElementById('convEditModal').classList.remove('open')">取消</button>
+                <button class="action-btn reject-btn" onclick="closeConvEditModal()">取消</button>
                 <button class="action-btn approve-btn" onclick="confirmConvAddToKnowledge()">✅ 确认添加到知识库</button>
             </div>
         </div>
     </div>
 
     <!-- ── 用户资料查看 Modal ── -->
-    <div id="userProfileModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div id="userProfileModal" onclick="if(event.target===this)closeUserProfileModal()" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.55);justify-content:center;align-items:center;">
         <div class="conv-modal-inner" style="max-width:420px;padding:0;">
             <div class="user-profile-card" id="userProfileContent">加载中...</div>
         </div>
