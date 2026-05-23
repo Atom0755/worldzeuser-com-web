@@ -1027,6 +1027,50 @@
 }
 
 
+        /* ── 对话用户信息芯片 ── */
+        .conv-user-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            cursor: pointer; padding: 3px 8px 3px 4px; border-radius: 20px;
+            background: #f0f4ff; border: 1px solid #d0d9ff;
+            font-size: 12px; color: #4a5568; margin-bottom: 8px;
+            transition: background 0.15s;
+        }
+        .conv-user-chip:hover { background: #dde7ff; }
+        .conv-user-initials {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px; font-weight: 700; flex-shrink: 0;
+        }
+        .conv-user-initials img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+
+        /* ── 编辑对话再添加到知识库 Modal ── */
+        #convEditModal, #userProfileModal {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.55); justify-content: center; align-items: center;
+        }
+        #convEditModal.open, #userProfileModal.open { display: flex; }
+        .conv-modal-inner {
+            background: white; border-radius: 16px; width: 92%; max-width: 620px;
+            max-height: 88vh; overflow-y: auto; padding: 26px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+        }
+        .conv-modal-inner h3 { font-size: 16px; color: #333; margin-bottom: 16px; }
+        .conv-modal-inner label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; margin-top: 12px; }
+        .conv-modal-inner input, .conv-modal-inner textarea, .conv-modal-inner select {
+            width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px;
+            font-size: 13px; box-sizing: border-box; font-family: inherit;
+        }
+        .conv-modal-inner textarea { min-height: 180px; resize: vertical; }
+        .conv-modal-btns { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+
+        /* ── 用户资料查看 Modal ── */
+        .user-profile-card { padding: 24px; }
+        .user-profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+        .user-profile-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: linear-gradient(135deg,#667eea,#764ba2); display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:700;flex-shrink:0; }
+        .user-profile-row { display:flex; gap:8px; margin-bottom: 10px; font-size: 13px; }
+        .user-profile-label { color: #999; min-width: 60px; }
+        .user-profile-val { color: #333; flex: 1; }
     </style>
 </head>
 <body>
@@ -2933,7 +2977,7 @@ checkAuth = async function() {
             event.target.value = '';
         };
 
-        // 加载AI对话
+        // 加载AI对话（含用户信息）
         window.loadConversations = async function() {
             try {
                 const { data, error } = await supabase
@@ -2945,39 +2989,60 @@ checkAuth = async function() {
                 if (error) throw error;
 
                 document.getElementById('conversationsCount').textContent = data?.length || 0;
-                
+
+                // 批量加载用户资料
+                const userIds = [...new Set((data || []).map(c => c.user_id).filter(Boolean))];
+                let profileMap = {};
+                if (userIds.length > 0) {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('user_id, full_name, company, avatar_url, address')
+                        .in('user_id', userIds);
+                    (profiles || []).forEach(p => { profileMap[p.user_id] = p; });
+                }
+
                 const listDiv = document.getElementById('conversationsList');
                 if (data && data.length > 0) {
                     listDiv.innerHTML = data.map(conv => {
                         const messages = conv.messages || [];
-                        
+                        const prof = profileMap[conv.user_id] || {};
+                        const displayName = prof.full_name || (conv.user_id ? conv.user_id.slice(0, 8) + '…' : '匿名');
+                        const initials = (prof.full_name || '?')[0].toUpperCase();
+                        const avatarHtml = prof.avatar_url
+                            ? `<img src="${prof.avatar_url}" onerror="this.style.display='none'">`
+                            : initials;
+                        const userChip = conv.user_id
+                            ? `<span class="conv-user-chip" onclick="showUserProfileModal('${conv.user_id}')">
+                                <span class="conv-user-initials">${avatarHtml}</span>${displayName}
+                               </span>`
+                            : '';
+
                         return `
                             <div class="conversation-item">
                                 <div class="checkbox-wrapper">
                                     <input type="checkbox" class="conversation-checkbox" data-id="${conv.id}">
                                     <div style="flex: 1;">
+                                        ${userChip}
                                         <div class="item-header">
                                             <div class="item-title">${conv.title || '对话记录'}</div>
                                         </div>
                                         <div class="conversation-messages">
-                                            ${messages.slice(-3).map(msg => `
+                                            ${messages.map(msg => `
                                                 <div class="conversation-message ${msg.role}">
                                                     <div class="message-role">${msg.role === 'user' ? '👤 用户' : '🤖 AI助手'}</div>
-                                                    <div class="message-text">${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}</div>
-                                                </div>
-                                            `).join('')}
+                                                    <div class="message-text">${String(msg.content || '').replace(/</g,'&lt;').substring(0, 300)}${(msg.content||'').length > 300 ? '…' : ''}</div>
+                                                </div>`).join('')}
                                         </div>
                                         <div class="item-meta">
                                             <span>${new Date(conv.updated_at).toLocaleString('zh-CN')}</span>
                                             <div class="item-actions">
-                                                <button class="action-btn approve-btn" onclick="addConversationToKnowledge('${conv.id}')">添加到知识库</button>
+                                                <button class="action-btn approve-btn" onclick="addConversationToKnowledge('${conv.id}')">✏️ 编辑并加入知识库</button>
                                                 <button class="action-btn reject-btn" onclick="ignoreConversation('${conv.id}')">忽略</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     }).join('');
                 } else {
                     listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><p>暂无AI对话记录</p></div>';
@@ -2985,56 +3050,92 @@ checkAuth = async function() {
             } catch (error) {
                 console.error('加载对话失败:', error);
                 const listDiv = document.getElementById('conversationsList');
-                if (listDiv) {
-                    listDiv.innerHTML = `<div class="empty-state" style="color:#ef4444;">
-                        <div class="empty-state-icon">⚠️</div>
-                        <p>加载失败：${error.message}</p>
-                        <small style="color:#94a3b8;margin-top:6px;display:block;">
-                          请在 Supabase SQL 编辑器运行建表脚本：<br>
-                          supabase/migrations/20260521_conversations_settings_policies.sql
-                        </small>
-                    </div>`;
-                }
+                if (listDiv) listDiv.innerHTML = `<div class="empty-state" style="color:#ef4444;"><div class="empty-state-icon">⚠️</div><p>加载失败：${error.message}</p></div>`;
             }
         };
 
-        // 添加对话到知识库
+        // 打开编辑弹窗（不直接插入，先让管理员编辑）
         window.addConversationToKnowledge = async function(conversationId) {
             try {
                 const { data: conv, error } = await supabase
-                    .from('conversations')
-                    .select('*')
-                    .eq('id', conversationId)
-                    .single();
-
+                    .from('conversations').select('*').eq('id', conversationId).single();
                 if (error) throw error;
 
                 const messages = conv.messages || [];
-                const userQuestions = messages.filter(m => m.role === 'user').map(m => m.content).join('\n');
-                const aiAnswers = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n');
+                const userQ = messages.filter(m => m.role === 'user').map(m => m.content).join('\n');
+                const aiA  = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n');
+                const title = (messages.find(m => m.role === 'user')?.content || '从对话生成').substring(0, 60);
+                const content = `问题：\n${userQ}\n\n回答：\n${aiA}`;
 
-                const title = messages.find(m => m.role === 'user')?.content.substring(0, 50) + '...';
-                const content = `问题：\n${userQuestions}\n\n回答：\n${aiAnswers}`;
-
-                const { error: insertError } = await supabase
-                    .from('knowledge_base')
-                    .insert([{
-                        title: title || '从对话生成',
-                        category: '常见问题',
-                        content: content,
-                        source_type: 'conversation',
-                        source_id: conversationId
-                    }]);
-
-                if (insertError) throw insertError;
-
-                alert('✅ 已添加到知识库！');
-                loadKnowledgeBase();
-                loadConversations();
-            } catch (error) {
-                console.error('添加失败:', error);
-                alert('❌ 添加失败：' + error.message);
+                document.getElementById('convEditTitle').value = title;
+                document.getElementById('convEditContent').value = content;
+                document.getElementById('convEditSourceId').value = conversationId;
+                document.getElementById('convEditModal').classList.add('open');
+            } catch (e) {
+                alert('❌ 加载失败：' + e.message);
             }
+        };
+
+        // 确认添加到知识库
+        window.confirmConvAddToKnowledge = async function() {
+            const title    = document.getElementById('convEditTitle').value.trim();
+            const category = document.getElementById('convEditCategory').value;
+            const content  = document.getElementById('convEditContent').value.trim();
+            if (!title || !content) { alert('标题和内容不能为空'); return; }
+
+            const { error } = await supabase.from('knowledge_base').insert([{
+                title, category, content, source_type: 'conversation',
+                tenant_slug: 'uscgcc'
+            }]);
+
+            if (error) { alert('❌ 添加失败：' + error.message); return; }
+
+            document.getElementById('convEditModal').classList.remove('open');
+            alert('✅ 已添加到知识库！');
+            loadKnowledgeBase();
+            loadConversations();
+        };
+
+        // 查看用户资料弹窗
+        window.showUserProfileModal = async function(userId) {
+            const modal = document.getElementById('userProfileModal');
+            const content = document.getElementById('userProfileContent');
+            content.innerHTML = '⏳ 加载中...';
+            modal.classList.add('open');
+
+            const { data: prof } = await supabase.from('profiles')
+                .select('*').eq('user_id', userId).maybeSingle();
+
+            if (!prof) {
+                content.innerHTML = '<div style="padding:24px;color:#999;">该用户暂无资料</div>';
+                return;
+            }
+            const initials = (prof.full_name || '?')[0].toUpperCase();
+            const avatarHtml = prof.avatar_url
+                ? `<img src="${prof.avatar_url}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`
+                : `<div class="user-profile-avatar">${initials}</div>`;
+
+            content.innerHTML = `
+                <div class="user-profile-card">
+                    <button onclick="document.getElementById('userProfileModal').classList.remove('open')"
+                        style="float:right;border:none;background:none;font-size:20px;cursor:pointer;color:#999;">✕</button>
+                    <div class="user-profile-head">${avatarHtml}
+                        <div>
+                            <div style="font-weight:700;font-size:16px;">${prof.full_name || '未填写姓名'}</div>
+                            <div style="color:#888;font-size:13px;">${prof.company || ''}</div>
+                        </div>
+                    </div>
+                    ${[['职务', prof.position],['电话', prof.phone],['地址', prof.address],['简介', prof.bio]]
+                        .filter(r=>r[1]).map(r=>`
+                        <div class="user-profile-row">
+                            <span class="user-profile-label">${r[0]}</span>
+                            <span class="user-profile-val">${r[1]}</span>
+                        </div>`).join('')}
+                    <div style="margin-top:16px;text-align:center;">
+                        <a href="/profile.html?uid=${userId}" target="_blank"
+                            style="font-size:13px;color:#667eea;">查看完整主页 →</a>
+                    </div>
+                </div>`;
         };
 
         // 批量添加到知识库
@@ -3113,5 +3214,34 @@ checkAuth = async function() {
         // 初始化
         checkAuth();
     </script>
+
+    <!-- ── 编辑对话再添加到知识库 Modal ── -->
+    <div id="convEditModal">
+        <div class="conv-modal-inner">
+            <h3>✏️ 编辑后添加到知识库</h3>
+            <label>标题</label>
+            <input id="convEditTitle" type="text" placeholder="知识条目标题">
+            <label>分类</label>
+            <select id="convEditCategory">
+                <option>商会简介</option><option>总会长简介</option><option>秘书长简介</option>
+                <option>入会指南</option><option>创始单位</option><option>联系我们</option>
+                <option selected>常见问题</option><option>动态新闻</option>
+            </select>
+            <label>内容（可编辑）</label>
+            <textarea id="convEditContent"></textarea>
+            <input type="hidden" id="convEditSourceId">
+            <div class="conv-modal-btns">
+                <button class="action-btn reject-btn" onclick="document.getElementById('convEditModal').classList.remove('open')">取消</button>
+                <button class="action-btn approve-btn" onclick="confirmConvAddToKnowledge()">✅ 确认添加到知识库</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 用户资料查看 Modal ── -->
+    <div id="userProfileModal" onclick="if(event.target===this)this.classList.remove('open')">
+        <div class="conv-modal-inner" style="max-width:420px;padding:0;">
+            <div class="user-profile-card" id="userProfileContent">加载中...</div>
+        </div>
+    </div>
 </body>
 </html>

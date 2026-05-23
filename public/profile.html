@@ -224,6 +224,10 @@
       <input id="pPhone" type="tel" placeholder="+1-xxx-xxx-xxxx">
     </div>
     <div class="form-group">
+      <label>公司地址</label>
+      <input id="pAddress" type="text" placeholder="城市 / 公司地址">
+    </div>
+    <div class="form-group">
       <label>简介（可选）</label>
       <textarea id="pBio" placeholder="一两句话介绍自己..."></textarea>
     </div>
@@ -283,8 +287,23 @@
 
   let currentUser = null;
 
-  // ── Tab 切换 ──
+  let profileComplete = false;
+
+  // ── Tab 切换（未完成资料时拦截非 info tab）──
   window.switchTab = function(name) {
+    if (name !== 'info' && !profileComplete) {
+      const status = document.getElementById('saveStatus');
+      status.style.color = '#fbbf24';
+      status.textContent = '⚠️ 请先填写并保存基本资料，再访问其他页面';
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', ['info','chats','member','wallet'][i] === 'info');
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-info').classList.add('active');
+      document.getElementById('pFullName').focus();
+      setTimeout(() => { if (status.textContent.includes('请先填写')) status.textContent = ''; }, 4000);
+      return;
+    }
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
       const names = ['info','chats','member','wallet'];
       b.classList.toggle('active', names[i] === name);
@@ -332,9 +351,12 @@
       document.getElementById('pCompany').value   = data.company   || '';
       document.getElementById('pPosition').value  = data.position  || '';
       document.getElementById('pPhone').value     = data.phone     || '';
+      document.getElementById('pAddress').value   = data.address   || '';
       document.getElementById('pBio').value       = data.bio       || '';
       if (data.full_name) document.getElementById('avatarInitials').textContent = initials(currentUser.email, data.full_name);
       if (data.avatar_url) showAvatarImg(data.avatar_url);
+      // 姓名+公司+电话都填了才算完整
+      profileComplete = !!(data.full_name && data.company && data.phone);
     }
   }
 
@@ -396,6 +418,7 @@
       company:    document.getElementById('pCompany').value.trim(),
       position:   document.getElementById('pPosition').value.trim(),
       phone:      document.getElementById('pPhone').value.trim(),
+      address:    document.getElementById('pAddress').value.trim(),
       bio:        document.getElementById('pBio').value.trim(),
       updated_at: new Date().toISOString(),
     };
@@ -408,6 +431,7 @@
     } else {
       status.style.color = '#4ade80';
       status.textContent = '✅ 已保存';
+      profileComplete = !!(payload.full_name && payload.company && payload.phone);
       if (payload.full_name) {
         const initEl = document.getElementById('avatarInitials');
         if (initEl && document.getElementById('avatarImg').style.display === 'none') {
