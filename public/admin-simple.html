@@ -3134,7 +3134,7 @@ checkAuth = async function() {
             if (!title || !content) { alert('标题和内容不能为空'); return; }
 
             const { error } = await supabase.from('knowledge_base').insert([{
-                title, category, content, source_type: 'conversation', tenant_slug: 'uscgcc'
+                title, category, content_type: category, content, source_type: 'conversation', tenant_slug: 'uscgcc'
             }]);
 
             if (error) { alert('❌ 添加失败：' + error.message); return; }
@@ -3173,16 +3173,12 @@ checkAuth = async function() {
                             <div style="color:#888;font-size:13px;">${prof.company || ''}</div>
                         </div>
                     </div>
-                    ${[['职务', prof.position],['电话', prof.phone],['地址', prof.address],['简介', prof.bio]]
+                    ${[['职务', prof.position],['电话', prof.phone],['邮箱', prof.email],['地址', prof.address],['简介', prof.bio],['会员状态', prof.membership_status],['入会时间', prof.member_since ? new Date(prof.member_since).toLocaleDateString('zh-CN') : null]]
                         .filter(r=>r[1]).map(r=>`
                         <div class="user-profile-row">
                             <span class="user-profile-label">${r[0]}</span>
                             <span class="user-profile-val">${r[1]}</span>
                         </div>`).join('')}
-                    <div style="margin-top:16px;text-align:center;">
-                        <a href="/profile.html?uid=${userId}" target="_blank"
-                            style="font-size:13px;color:#667eea;">查看完整主页 →</a>
-                    </div>
                 </div>`;
         };
 
