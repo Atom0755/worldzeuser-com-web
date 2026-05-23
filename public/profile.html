@@ -57,6 +57,17 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 28px; font-weight: 700; color: white;
       border: 3px solid #38bdf8; flex-shrink: 0;
+      cursor: pointer; position: relative; overflow: hidden;
+    }
+    .user-avatar-circle:hover .avatar-overlay { opacity: 1; }
+    .avatar-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; opacity: 0; transition: opacity 0.2s; border-radius: 50%;
+    }
+    .user-avatar-circle img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; border-radius: 50%;
     }
     .user-email { font-size: 0.9rem; color: #e2e8f0; font-weight: 500; margin-bottom: 4px; word-break: break-all; }
     .user-since { font-size: 0.75rem; color: #64748b; }
@@ -168,7 +179,12 @@
 <!-- 用户卡片 -->
 <div class="user-card">
   <div class="user-card-inner">
-    <div class="user-avatar-circle" id="avatarCircle">?</div>
+    <div class="user-avatar-circle" id="avatarCircle" onclick="document.getElementById('avatarFileInput').click()" title="点击更换头像">
+      <span id="avatarInitials">?</span>
+      <img id="avatarImg" src="" style="display:none;">
+      <div class="avatar-overlay">📷</div>
+    </div>
+    <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="uploadUserAvatar(event)">
     <div style="flex:1;min-width:0;">
       <div class="user-email" id="userEmail">加载中...</div>
       <div class="user-since" id="userSince"></div>
@@ -247,9 +263,10 @@
       账户状态：<span id="wStatus" style="font-weight:600;">--</span><br>
       下次扣费：<span id="wAnchor">--</span>
     </div>
-    <div style="display:flex;gap:10px;">
-      <input id="topupAmount" type="number" placeholder="充值金额 ($)" min="1"
+    <div style="display:flex;gap:10px;align-items:center;">
+      <input id="topupAmount" type="number" placeholder="充值金额" min="30"
         style="flex:1;padding:9px 12px;background:rgba(15,23,42,0.8);border:1px solid rgba(56,189,248,0.2);border-radius:8px;color:#e2e8f0;font-size:0.85rem;outline:none;">
+      <span style="font-size:0.75rem;color:#64748b;white-space:nowrap;flex-shrink:0;">每次最少 $30</span>
       <button onclick="doTopup()" class="btn-primary" style="flex:0 0 auto;width:auto;padding:9px 18px;margin-top:0;">充值</button>
     </div>
     <div id="topupMsg" style="font-size:0.75rem;color:#94a3b8;margin-top:6px;"></div>
@@ -297,7 +314,7 @@
     currentUser = session.user;
     const email = currentUser.email || '';
     document.getElementById('userEmail').textContent = email;
-    document.getElementById('avatarCircle').textContent = initials(email, '');
+    document.getElementById('avatarInitials').textContent = initials(email, '');
 
     const since = new Date(currentUser.created_at || Date.now()).toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
     document.getElementById('userSince').textContent = '注册于 ' + since;
@@ -317,10 +334,55 @@
       document.getElementById('pPosition').value  = data.position  || '';
       document.getElementById('pPhone').value     = data.phone     || '';
       document.getElementById('pBio').value       = data.bio       || '';
-      const circle = document.getElementById('avatarCircle');
-      if (data.full_name) circle.textContent = initials(currentUser.email, data.full_name);
+      if (data.full_name) document.getElementById('avatarInitials').textContent = initials(currentUser.email, data.full_name);
+      if (data.avatar_url) showAvatarImg(data.avatar_url);
     }
   }
+
+  function showAvatarImg(url) {
+    const img = document.getElementById('avatarImg');
+    const initEl = document.getElementById('avatarInitials');
+    if (img) { img.src = url; img.style.display = 'block'; }
+    if (initEl) initEl.style.display = 'none';
+  }
+
+  window.uploadUserAvatar = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `user-${currentUser.id}/avatar.${ext}`;
+
+    // 上传到 bot-avatars bucket
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/bot-avatars/${path}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true',
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      alert('❌ 头像上传失败，请重试');
+      return;
+    }
+
+    const avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/bot-avatars/${path}?t=${Date.now()}`;
+
+    // 保存到 profiles.avatar_url
+    await supabase.from('profiles').upsert(
+      { user_id: currentUser.id, tenant_slug: 'uscgcc', avatar_url: avatarUrl, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+
+    showAvatarImg(avatarUrl);
+  };
 
   window.saveProfile = async function() {
     const btn = document.getElementById('saveProfileBtn');
@@ -347,8 +409,12 @@
     } else {
       status.style.color = '#4ade80';
       status.textContent = '✅ 已保存';
-      const circle = document.getElementById('avatarCircle');
-      if (payload.full_name) circle.textContent = initials(currentUser.email, payload.full_name);
+      if (payload.full_name) {
+        const initEl = document.getElementById('avatarInitials');
+        if (initEl && document.getElementById('avatarImg').style.display === 'none') {
+          initEl.textContent = initials(currentUser.email, payload.full_name);
+        }
+      }
       setTimeout(() => { status.textContent = ''; }, 3000);
     }
     btn.disabled = false; btn.textContent = '💾 保存资料';
