@@ -1215,15 +1215,25 @@
                             <input type="text" id="knowledgeTitle" placeholder="例如：商会简介" required>
                         </div>
                         <div class="form-group">
-                            <label>分类 <span>*</span></label>
-                            <select id="knowledgeCategory" required>
-                                <option value="商会简介">商会简介</option>
-                                <option value="会员服务">会员服务</option>
-                                <option value="活动信息">活动信息</option>
-                                <option value="联系我们">联系我们</option>
-                                <option value="常见问题">常见问题</option>
-                                <option value="其他">其他</option>
-                            </select>
+                            <label>分类 <span>*</span>
+                                <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">（可从列表选，也可直接输入新分类）</span>
+                            </label>
+                            <input list="kb-categories" id="knowledgeCategory"
+                                   placeholder="选择或输入分类…" required
+                                   style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;">
+                            <datalist id="kb-categories">
+                                <option value="商会简介">
+                                <option value="总会长简介">
+                                <option value="秘书长简介">
+                                <option value="入会指南">
+                                <option value="创始单位">
+                                <option value="联系我们">
+                                <option value="常见问题">
+                                <option value="动态新闻">
+                                <option value="会员服务">
+                                <option value="活动信息">
+                                <option value="其他">
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label>内容 <span>*</span></label>
@@ -3267,12 +3277,10 @@ checkAuth = async function() {
         <h3>✏️ 编辑后添加到知识库</h3>
         <label>标题</label>
         <input id="convEditTitle" type="text" placeholder="知识条目标题">
-        <label>分类</label>
-        <select id="convEditCategory">
-            <option>商会简介</option><option>总会长简介</option><option>秘书长简介</option>
-            <option>入会指南</option><option>创始单位</option><option>联系我们</option>
-            <option selected>常见问题</option><option>动态新闻</option>
-        </select>
+        <label>分类<span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">（可从列表选或直接输入新分类）</span></label>
+        <input list="kb-categories" id="convEditCategory" value="常见问题"
+               placeholder="选择或输入分类…"
+               style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:8px;">
         <label>内容（可编辑）</label>
         <textarea id="convEditContent"></textarea>
         <input type="hidden" id="convEditSourceId">
