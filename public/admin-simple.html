@@ -3054,18 +3054,30 @@ checkAuth = async function() {
             }
         };
 
-        // 关闭/开 modal 辅助（用 style 避免 CSS 优先级问题）
-        function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        // 关闭/开 modal 辅助（null 安全，同时挂到 window 供 inline handler 调用）
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (!el) { console.error('[modal] 找不到元素:', id); return; }
+            el.style.display = 'flex';
+        }
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        }
+        window.openModal  = openModal;
+        window.closeModal = closeModal;
         window.closeConvEditModal    = () => closeModal('convEditModal');
         window.closeUserProfileModal = () => closeModal('userProfileModal');
 
-        // 打开编辑弹窗（先显示 modal，后台加载数据）
+        // 打开编辑弹窗 —— 先开 modal，再赋值（避免 null 阻断 openModal）
         window.addConversationToKnowledge = async function(conversationId) {
-            document.getElementById('convEditTitle').value   = '';
-            document.getElementById('convEditContent').value = '⏳ 加载中...';
-            document.getElementById('convEditSourceId').value = conversationId;
-            openModal('convEditModal');
+            openModal('convEditModal');                          // ① 先开弹窗
+            const titleEl   = document.getElementById('convEditTitle');
+            const contentEl = document.getElementById('convEditContent');
+            const sourceEl  = document.getElementById('convEditSourceId');
+            if (titleEl)   titleEl.value   = '';
+            if (contentEl) contentEl.value = '⏳ 加载中...';
+            if (sourceEl)  sourceEl.value  = conversationId || '';
 
             try {
                 const { data: conv, error } = await supabase
@@ -3077,19 +3089,19 @@ checkAuth = async function() {
                 const aiA  = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n');
                 const title = (messages.find(m => m.role === 'user')?.content || '从对话生成').substring(0, 60);
 
-                document.getElementById('convEditTitle').value   = title;
-                document.getElementById('convEditContent').value = `问题：\n${userQ}\n\n回答：\n${aiA}`;
+                if (titleEl)   titleEl.value   = title;
+                if (contentEl) contentEl.value = `问题：\n${userQ}\n\n回答：\n${aiA}`;
             } catch (e) {
-                document.getElementById('convEditContent').value = '';
+                if (contentEl) contentEl.value = '';
                 alert('❌ 加载失败：' + e.message);
             }
         };
 
         // 确认添加到知识库
         window.confirmConvAddToKnowledge = async function() {
-            const title    = document.getElementById('convEditTitle').value.trim();
-            const category = document.getElementById('convEditCategory').value;
-            const content  = document.getElementById('convEditContent').value.trim();
+            const title    = (document.getElementById('convEditTitle')?.value  || '').trim();
+            const category =  document.getElementById('convEditCategory')?.value || '常见问题';
+            const content  = (document.getElementById('convEditContent')?.value || '').trim();
             if (!title || !content) { alert('标题和内容不能为空'); return; }
 
             const { error } = await supabase.from('knowledge_base').insert([{
@@ -3104,11 +3116,11 @@ checkAuth = async function() {
             loadConversations();
         };
 
-        // 查看用户资料弹窗
+        // 查看用户资料弹窗 —— 先开 modal，再加载数据
         window.showUserProfileModal = async function(userId) {
+            openModal('userProfileModal');                       // ① 先开弹窗
             const content = document.getElementById('userProfileContent');
-            content.innerHTML = '⏳ 加载中...';
-            openModal('userProfileModal');
+            if (content) content.innerHTML = '⏳ 加载中...';
 
             const { data: prof } = await supabase.from('profiles')
                 .select('*').eq('user_id', userId).maybeSingle();
