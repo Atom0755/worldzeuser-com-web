@@ -529,18 +529,19 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
         if (data && data.ok && data.answer) {
           addMessage(data.answer)
           // 保存对话到 Supabase（供管理后台查看）
-          supabase.from('conversations').insert({
-            tenant_slug: 'uscgcc',
-            user_id: session.user.id,
-            title: finalQuestion.slice(0, 50),
-            messages: [
-              { role: 'user', content: finalQuestion },
-              { role: 'assistant', content: data.answer }
-            ],
-            updated_at: new Date().toISOString()
-          }).then(({ error: saveErr }: { error: { message: string } | null }) => {
-            if (saveErr) console.warn('对话保存失败:', saveErr.message)
-          })
+          ;(async () => {
+            const { error: saveErr } = await supabase.from('conversations').insert({
+              tenant_slug: 'uscgcc',
+              user_id: session.user.id,
+              title: finalQuestion.slice(0, 50),
+              messages: [
+                { role: 'user', content: finalQuestion },
+                { role: 'assistant', content: data.answer }
+              ],
+              updated_at: new Date().toISOString()
+            })
+            if (saveErr) console.error('对话保存失败:', saveErr.code, saveErr.message)
+          })()
         } else if (data && data.error) {
           addMessage('抱歉：' + data.error)
         } else {
