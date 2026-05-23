@@ -1036,6 +1036,14 @@
             transition: background 0.15s;
         }
         .conv-user-chip:hover { background: #dde7ff; }
+        /* 对话卡片：用户行（头像芯片 + 问题文本） */
+        .conv-user-row {
+            display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+        }
+        .conv-user-question {
+            flex: 1; font-size: 14px; color: #374151; line-height: 1.6;
+            padding-top: 3px; word-break: break-word;
+        }
         .conv-user-initials {
             width: 22px; height: 22px; border-radius: 50%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -3012,22 +3020,27 @@ checkAuth = async function() {
                             ? `<img src="${prof.avatar_url}" onerror="this.style.display='none'">`
                             : initials;
                         // 使用 data-action 代替 onclick，由事件委托处理
+                        const userQ  = messages.filter(m => m.role === 'user').map(m => String(m.content || '').replace(/</g,'&lt;').substring(0, 200)).join('<br>');
+                        const aiMsgs = messages.filter(m => m.role === 'assistant');
                         const userChip = conv.user_id
                             ? `<span class="conv-user-chip" data-action="view-profile" data-uid="${conv.user_id}">
                                 <span class="conv-user-initials">${avatarHtml}</span>${displayName}
                                </span>`
-                            : '';
+                            : `<span class="conv-user-chip"><span class="conv-user-initials">?</span>匿名</span>`;
 
                         return `
                             <div class="conversation-item">
                                 <div class="checkbox-wrapper">
                                     <input type="checkbox" class="conversation-checkbox" data-id="${conv.id}">
                                     <div style="flex: 1;">
-                                        ${userChip}
+                                        <div class="conv-user-row">
+                                            ${userChip}
+                                            <div class="conv-user-question">${userQ}</div>
+                                        </div>
                                         <div class="conversation-messages">
-                                            ${messages.map(msg => `
-                                                <div class="conversation-message ${msg.role}">
-                                                    <div class="message-role">${msg.role === 'user' ? '👤 用户' : '🤖 AI助手'}</div>
+                                            ${aiMsgs.map(msg => `
+                                                <div class="conversation-message assistant">
+                                                    <div class="message-role">🤖 AI助手</div>
                                                     <div class="message-text">${String(msg.content || '').replace(/</g,'&lt;').substring(0, 300)}${(msg.content||'').length > 300 ? '…' : ''}</div>
                                                 </div>`).join('')}
                                         </div>
@@ -3052,15 +3065,15 @@ checkAuth = async function() {
             }
         };
 
-        // 关闭/开 modal 辅助（null 安全，同时挂到 window 供 inline handler 调用）
+        // 关闭/开 modal 辅助（CSS .open 类控制，与 #convEditModal.open{display:flex} 规则配合）
         function openModal(id) {
             const el = document.getElementById(id);
             if (!el) { console.error('[modal] 找不到元素:', id); return; }
-            el.style.display = 'flex';
+            el.classList.add('open');
         }
         function closeModal(id) {
             const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
+            if (el) el.classList.remove('open');
         }
         window.openModal  = openModal;
         window.closeModal = closeModal;
@@ -3249,34 +3262,36 @@ checkAuth = async function() {
         // 初始化
         checkAuth();
     </script>
+    </div><!-- /confirm-modal-box -->
+</div><!-- /recharge-modal -->
 
-    <!-- ── 编辑对话再添加到知识库 Modal ── -->
-    <div id="convEditModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.55);justify-content:center;align-items:center;">
-        <div class="conv-modal-inner">
-            <h3>✏️ 编辑后添加到知识库</h3>
-            <label>标题</label>
-            <input id="convEditTitle" type="text" placeholder="知识条目标题">
-            <label>分类</label>
-            <select id="convEditCategory">
-                <option>商会简介</option><option>总会长简介</option><option>秘书长简介</option>
-                <option>入会指南</option><option>创始单位</option><option>联系我们</option>
-                <option selected>常见问题</option><option>动态新闻</option>
-            </select>
-            <label>内容（可编辑）</label>
-            <textarea id="convEditContent"></textarea>
-            <input type="hidden" id="convEditSourceId">
-            <div class="conv-modal-btns">
-                <button class="action-btn reject-btn" onclick="closeConvEditModal()">取消</button>
-                <button class="action-btn approve-btn" onclick="confirmConvAddToKnowledge()">✅ 确认添加到知识库</button>
-            </div>
+<!-- ── 编辑对话再添加到知识库 Modal（CSS #convEditModal{display:none} + .open{display:flex}） ── -->
+<div id="convEditModal">
+    <div class="conv-modal-inner">
+        <h3>✏️ 编辑后添加到知识库</h3>
+        <label>标题</label>
+        <input id="convEditTitle" type="text" placeholder="知识条目标题">
+        <label>分类</label>
+        <select id="convEditCategory">
+            <option>商会简介</option><option>总会长简介</option><option>秘书长简介</option>
+            <option>入会指南</option><option>创始单位</option><option>联系我们</option>
+            <option selected>常见问题</option><option>动态新闻</option>
+        </select>
+        <label>内容（可编辑）</label>
+        <textarea id="convEditContent"></textarea>
+        <input type="hidden" id="convEditSourceId">
+        <div class="conv-modal-btns">
+            <button class="action-btn reject-btn" onclick="closeConvEditModal()">取消</button>
+            <button class="action-btn approve-btn" onclick="confirmConvAddToKnowledge()">✅ 确认添加到知识库</button>
         </div>
     </div>
+</div>
 
-    <!-- ── 用户资料查看 Modal ── -->
-    <div id="userProfileModal" onclick="if(event.target===this)closeUserProfileModal()" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.55);justify-content:center;align-items:center;">
-        <div class="conv-modal-inner" style="max-width:420px;padding:0;">
-            <div class="user-profile-card" id="userProfileContent">加载中...</div>
-        </div>
+<!-- ── 用户资料查看 Modal ── -->
+<div id="userProfileModal" onclick="if(event.target===this)closeUserProfileModal()">
+    <div class="conv-modal-inner" style="max-width:420px;padding:0;">
+        <div class="user-profile-card" id="userProfileContent">加载中...</div>
     </div>
+</div>
 </body>
 </html>
