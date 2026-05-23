@@ -528,19 +528,40 @@ const verifyBtn = document.getElementById('verify-submit') as HTMLButtonElement 
 
         if (data && data.ok && data.answer) {
           addMessage(data.answer)
-          // 保存对话到 Supabase（供管理后台查看）
+          // 保存对话到 Supabase（直接 fetch REST API，绕过客户端内部状态）
           ;(async () => {
-            const { error: saveErr } = await supabase.from('conversations').insert({
-              tenant_slug: 'uscgcc',
-              user_id: session.user.id,
-              title: finalQuestion.slice(0, 50),
-              messages: [
-                { role: 'user', content: finalQuestion },
-                { role: 'assistant', content: data.answer }
-              ],
-              updated_at: new Date().toISOString()
-            })
-            if (saveErr) console.error('对话保存失败:', saveErr.code, saveErr.message)
+            try {
+              const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/conversations`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Prefer': 'return=minimal',
+                  },
+                  body: JSON.stringify({
+                    tenant_slug: 'uscgcc',
+                    user_id: session.user.id,
+                    title: finalQuestion.slice(0, 50),
+                    messages: [
+                      { role: 'user', content: finalQuestion },
+                      { role: 'assistant', content: data.answer }
+                    ],
+                    updated_at: new Date().toISOString(),
+                  }),
+                }
+              )
+              if (!res.ok) {
+                const txt = await res.text()
+                console.error('对话保存失败:', res.status, txt)
+              } else {
+                console.log('✅ 对话已保存')
+              }
+            } catch (e) {
+              console.error('对话保存异常:', e)
+            }
           })()
         } else if (data && data.error) {
           addMessage('抱歉：' + data.error)
