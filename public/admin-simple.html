@@ -1079,6 +1079,54 @@
         .user-profile-row { display:flex; gap:8px; margin-bottom: 10px; font-size: 13px; }
         .user-profile-label { color: #999; min-width: 60px; }
         .user-profile-val { color: #333; flex: 1; }
+
+        /* ── 组织与成员：用户卡片网格 ── */
+        .members-controls { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+        .members-controls input { flex:1; min-width:180px; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; }
+        .members-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+        .member-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s; }
+        .member-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+        .member-card-head { display:flex; align-items:center; gap:12px; }
+        .member-card-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:#fff; font-size:17px; font-weight:700; flex-shrink:0; }
+        .member-card-avatar img { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+        .member-card-name { font-weight:600; font-size:14px; color:#111827; }
+        .member-card-sub { font-size:12px; color:#6b7280; margin-top:2px; }
+        .member-badge { display:inline-block; background:#d1fae5; color:#065f46; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; }
+        .member-card-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .friend-btn { font-size:12px; padding:5px 12px; border-radius:6px; border:none; cursor:pointer; font-weight:500; }
+        .friend-btn.add { background:#667eea; color:#fff; }
+        .friend-btn.add:hover { background:#5563d6; }
+        .friend-btn.pending { background:#fef3c7; color:#92400e; cursor:default; }
+        .friend-btn.accepted { background:#d1fae5; color:#065f46; cursor:default; }
+        .friend-btn.view { background:#f3f4f6; color:#374151; }
+        .friend-btn.view:hover { background:#e5e7eb; }
+
+        /* ── 沟通中心：AI接管开关 ── */
+        .toggle-switch { position:relative; display:inline-block; width:52px; height:28px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#d1d5db; border-radius:28px; transition:.3s; }
+        .toggle-slider:before { content:''; position:absolute; height:22px; width:22px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+        .toggle-switch input:checked + .toggle-slider { background:#667eea; }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(24px); }
+
+        /* ── 沟通中心：收件箱列表 ── */
+        .inbox-list { display:flex; flex-direction:column; gap:10px; }
+        .inbox-item { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; display:flex; gap:14px; align-items:flex-start; cursor:pointer; transition:box-shadow .2s; }
+        .inbox-item:hover { box-shadow:0 2px 10px rgba(0,0,0,.07); }
+        .inbox-item.unread { border-left:3px solid #667eea; }
+        .inbox-item-icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+        .inbox-item-body { flex:1; min-width:0; }
+        .inbox-item-subject { font-weight:600; font-size:14px; color:#111827; }
+        .inbox-item-text { font-size:13px; color:#6b7280; margin-top:3px; white-space:pre-wrap; }
+        .inbox-item-time { font-size:11px; color:#9ca3af; margin-top:6px; }
+        .inbox-item-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+        /* ── 待审核 AI 回复 ── */
+        .pending-reply-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:12px; }
+        .pending-reply-q { font-size:13px; color:#374151; font-weight:600; margin-bottom:8px; }
+        .pending-reply-ai { font-size:12px; color:#6b7280; background:#f9fafb; border-radius:6px; padding:10px; margin-bottom:10px; white-space:pre-wrap; max-height:120px; overflow-y:auto; }
+        .pending-reply-edit { width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; min-height:80px; resize:vertical; box-sizing:border-box; font-family:inherit; }
+        .pending-reply-meta { font-size:11px; color:#9ca3af; margin-bottom:8px; }
     </style>
 </head>
 <body>
@@ -1119,11 +1167,11 @@
 
     <div class="sb-title">🚧 规划中</div>
     <div class="sb-group">
-      <button class="sb-item disabled" onclick="openComingSoon('组织与成员')">
-        <span class="left">👥 组织与成员</span><span class="soon-tag">Soon</span>
+      <button class="sb-item" data-section="members" onclick="switchSection('members')">
+        <span class="left">👥 组织与成员</span>
       </button>
-      <button class="sb-item disabled" onclick="openComingSoon('沟通中心')">
-        <span class="left">💬 沟通中心</span><span class="soon-tag">Soon</span>
+      <button class="sb-item" data-section="comms" onclick="switchSection('comms')">
+        <span class="left">💬 沟通中心</span><span id="inboxBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700;">0</span>
       </button>
       <button class="sb-item disabled" onclick="openComingSoon('安全与审计')">
         <span class="left">🛡️ 安全与审计</span><span class="soon-tag">Soon</span>
@@ -1518,8 +1566,96 @@
       </div>
     </section>
 
-    <!-- 统一“开发中”占位 -->
-    <section id="section-soon" class="section">
+    <!-- ── 组织与成员 ── -->
+    <section id=”section-members” class=”section”>
+      <div class=”content-section”>
+        <div class=”form-section” style=”padding-bottom:0;”>
+          <h2>👥 组织与成员</h2>
+        </div>
+        <div class=”tabs”>
+          <div class=”tab-buttons”>
+            <button class=”tab-btn active” id=”membersTab-users” onclick=”switchMembersTab('users')”>
+              注册用户 <span id=”membersUsersCountBadge” style=”font-size:12px;color:#6b7280;”></span>
+            </button>
+            <button class=”tab-btn” id=”membersTab-members” onclick=”switchMembersTab('members')”>
+              商会会员 <span id=”membersMembersCountBadge” style=”font-size:12px;color:#6b7280;”></span>
+            </button>
+          </div>
+
+          <!-- 注册用户 -->
+          <div id=”members-users-tab” class=”tab-content active” style=”padding:16px 0 0;”>
+            <div class=”members-controls”>
+              <input id=”membersSearchInput” type=”text” placeholder=”搜索姓名 / 公司...” oninput=”filterMemberCards()”>
+              <button class=”action-btn approve-btn” onclick=”bulkAddFriends()” style=”flex-shrink:0;”>🤝 全部添加好友</button>
+            </div>
+            <div id=”membersUsersList” class=”members-grid”>
+              <div class=”empty-state”><div class=”empty-state-icon”>⏳</div><p>加载中...</p></div>
+            </div>
+          </div>
+
+          <!-- 商会会员 -->
+          <div id=”members-members-tab” class=”tab-content” style=”padding:16px 0 0;”>
+            <div class=”members-controls”>
+              <input id=”membersMembersSearchInput” type=”text” placeholder=”搜索会员...” oninput=”filterMembersCards()”>
+            </div>
+            <div id=”membersMembersList” class=”members-grid”>
+              <div class=”empty-state”><div class=”empty-state-icon”>⏳</div><p>加载中...</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 沟通中心 ── -->
+    <section id=”section-comms” class=”section”>
+      <div class=”content-section”>
+        <div class=”form-section” style=”padding-bottom:0;”>
+          <h2>💬 沟通中心</h2>
+        </div>
+        <div class=”tabs”>
+          <div class=”tab-buttons”>
+            <button class=”tab-btn active” id=”commsTab-takeover” onclick=”switchCommsTab('takeover')”>🤖 AI接管</button>
+            <button class=”tab-btn” id=”commsTab-inbox” onclick=”switchCommsTab('inbox')”>
+              📬 收件箱 <span id=”commsInboxBadge” style=”display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700;margin-left:4px;”>0</span>
+            </button>
+          </div>
+
+          <!-- AI 接管 -->
+          <div id=”comms-takeover-tab” class=”tab-content active” style=”padding:16px 0 0;”>
+            <div class=”form-section”>
+              <div style=”display:flex;align-items:center;gap:16px;margin-bottom:16px;”>
+                <label class=”toggle-switch”>
+                  <input type=”checkbox” id=”aiTakeoverToggle” onchange=”toggleAiTakeover()”>
+                  <span class=”toggle-slider”></span>
+                </label>
+                <div>
+                  <div style=”font-weight:600;font-size:15px;”>AI接管开关</div>
+                  <div id=”aiTakeoverStatus” style=”font-size:13px;color:#6b7280;”>加载中...</div>
+                </div>
+              </div>
+              <div style=”background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;font-size:13px;color:#92400e;margin-bottom:20px;”>
+                <strong>⚠️ 接管模式说明：</strong>开启后，用户提问时 AI 会生成参考回复但暂不发送，等待管理员在下方编辑确认后再回复用户（消息发入用户收件箱）。关闭后恢复 AI 自动回复。
+              </div>
+
+              <h3 style=”font-size:14px;font-weight:600;color:#374151;margin-bottom:12px;”>📋 待审核回复</h3>
+              <div id=”pendingAiRepliesList”>
+                <div class=”empty-state” style=”margin-top:0;”><div class=”empty-state-icon”>✅</div><p>暂无待审核回复</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 收件箱 -->
+          <div id=”comms-inbox-tab” class=”tab-content” style=”padding:16px 0 0;”>
+            <div id=”adminInboxList” class=”inbox-list”>
+              <div class=”empty-state”><div class=”empty-state-icon”>⏳</div><p>加载中...</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统一”开发中”占位 -->
+    <section id=”section-soon” class=”section”>
       <div class="coming-soon-box">
         <h2 id="soonTitle">开发中</h2>
         <p>
@@ -1985,15 +2121,16 @@
 // ✅ 新增：Section 切换（概览 / 内容 / 钱包 / 占位）
 // =========================
 window.switchSection = function(section) {
-  // 切换右侧 section
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const target = document.getElementById('section-' + section);
   if (target) target.classList.add('active');
 
-  // 高亮左侧菜单
   document.querySelectorAll('.sb-item').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.querySelector(`.sb-item[data-section="${section}"]`);
   if (activeBtn) activeBtn.classList.add('active');
+
+  if (section === 'members') loadMembersSection();
+  if (section === 'comms') loadCommsSection();
 };
 
 window.openComingSoon = function(name) {
@@ -2211,6 +2348,404 @@ checkAuth = async function() {
 };
 
 
+        // ══════════════════════════════════════════
+        // 组织与成员
+        // ══════════════════════════════════════════
+
+        let _allUsersCache = [];
+        let _friendshipMap = {};  // userId -> { id, status, direction }
+        let _myAdminId = null;
+
+        window.switchMembersTab = function(name) {
+            document.querySelectorAll('#section-members .tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('membersTab-' + name)?.classList.add('active');
+            document.querySelectorAll('#section-members .tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('members-' + name + '-tab')?.classList.add('active');
+        };
+
+        window.loadMembersSection = async function() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            _myAdminId = session.user.id;
+
+            // 加载好友关系
+            const { data: fships } = await supabase.from('friendships').select('*');
+            _friendshipMap = {};
+            (fships || []).forEach(f => {
+                const otherId = f.sender_id === _myAdminId ? f.receiver_id : f.sender_id;
+                _friendshipMap[otherId] = { id: f.id, status: f.status, isSender: f.sender_id === _myAdminId };
+            });
+
+            // 加载所有用户 profiles
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, company, position, avatar_url, membership_status, member_since')
+                .order('created_at', { ascending: false });
+
+            _allUsersCache = profiles || [];
+
+            const usersEl = document.getElementById('membersUsersList');
+            const membersEl = document.getElementById('membersMembersList');
+
+            const allCards = _allUsersCache.filter(p => p.user_id !== _myAdminId);
+            const memberCards = allCards.filter(p => p.membership_status === 'approved');
+
+            document.getElementById('membersUsersCountBadge').textContent = `(${allCards.length})`;
+            document.getElementById('membersMembersCountBadge').textContent = `(${memberCards.length})`;
+
+            usersEl.innerHTML = allCards.length > 0
+                ? allCards.map(p => renderMemberCard(p)).join('')
+                : '<div class="empty-state"><div class="empty-state-icon">👤</div><p>暂无注册用户</p></div>';
+
+            membersEl.innerHTML = memberCards.length > 0
+                ? memberCards.map(p => renderMemberCard(p)).join('')
+                : '<div class="empty-state"><div class="empty-state-icon">🏅</div><p>暂无已通过会员</p></div>';
+        };
+
+        function renderMemberCard(prof) {
+            const initials = (prof.full_name || '?')[0].toUpperCase();
+            const avatarHtml = prof.avatar_url
+                ? `<img src="${prof.avatar_url}" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`
+                : `<div class="member-card-avatar">${initials}</div>`;
+
+            const fship = _friendshipMap[prof.user_id];
+            let friendBtn = '';
+            if (!fship) {
+                friendBtn = `<button class="friend-btn add" onclick="sendFriendRequest('${prof.user_id}', this)">➕ 添加好友</button>`;
+            } else if (fship.status === 'pending') {
+                friendBtn = `<button class="friend-btn pending">⏳ 请求中</button>`;
+            } else if (fship.status === 'accepted') {
+                friendBtn = `<button class="friend-btn accepted">✅ 已是好友</button>`;
+            }
+
+            const memberBadge = prof.membership_status === 'approved'
+                ? `<span class="member-badge">🏅 会员</span>`
+                : (prof.membership_status === 'pending' ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 7px;border-radius:10px;">申请中</span>` : '');
+
+            return `
+            <div class="member-card" data-name="${(prof.full_name||'').toLowerCase()}" data-company="${(prof.company||'').toLowerCase()}">
+                <div class="member-card-head">
+                    <div class="member-card-avatar" style="overflow:hidden;">${avatarHtml}</div>
+                    <div>
+                        <div class="member-card-name">${prof.full_name || '未填写'}</div>
+                        <div class="member-card-sub">${prof.company || ''} ${prof.position ? '· '+prof.position : ''}</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    ${memberBadge}
+                </div>
+                <div class="member-card-actions">
+                    <button class="friend-btn view" onclick="window.showUserProfileModal('${prof.user_id}')">👁 查看资料</button>
+                    ${friendBtn}
+                </div>
+            </div>`;
+        }
+
+        window.filterMemberCards = function() {
+            const q = (document.getElementById('membersSearchInput')?.value || '').toLowerCase();
+            document.querySelectorAll('#membersUsersList .member-card').forEach(card => {
+                const match = card.dataset.name.includes(q) || card.dataset.company.includes(q);
+                card.style.display = match ? '' : 'none';
+            });
+        };
+        window.filterMembersCards = function() {
+            const q = (document.getElementById('membersMembersSearchInput')?.value || '').toLowerCase();
+            document.querySelectorAll('#membersMembersList .member-card').forEach(card => {
+                const match = card.dataset.name.includes(q) || card.dataset.company.includes(q);
+                card.style.display = match ? '' : 'none';
+            });
+        };
+
+        window.sendFriendRequest = async function(targetUserId, btn) {
+            if (!_myAdminId) return;
+            if (btn) { btn.disabled = true; btn.textContent = '发送中...'; }
+            try {
+                const { data: fship, error: fErr } = await supabase.from('friendships').insert({
+                    sender_id: _myAdminId,
+                    receiver_id: targetUserId,
+                    status: 'pending',
+                    tenant_slug: 'uscgcc'
+                }).select().single();
+                if (fErr) throw fErr;
+
+                // 发送收件箱通知给对方
+                const myProf = _allUsersCache.find(p => p.user_id === _myAdminId);
+                await supabase.from('uscgcc_inbox').insert({
+                    user_id: targetUserId,
+                    sender_id: _myAdminId,
+                    type: 'friend_request',
+                    subject: '好友申请',
+                    body: `管理员${myProf?.full_name ? ' ' + myProf.full_name : ''} 向您发送了好友申请`,
+                    ref_id: fship?.id || null
+                });
+
+                _friendshipMap[targetUserId] = { id: fship?.id, status: 'pending', isSender: true };
+                if (btn) { btn.className = 'friend-btn pending'; btn.textContent = '⏳ 请求中'; btn.disabled = false; }
+            } catch (e) {
+                alert('❌ 添加失败：' + e.message);
+                if (btn) { btn.disabled = false; btn.textContent = '➕ 添加好友'; }
+            }
+        };
+
+        window.bulkAddFriends = async function() {
+            if (!confirm('将管理员账号与全部用户建立好友关系（跳过已是好友的）？')) return;
+            let added = 0, skipped = 0;
+            for (const prof of _allUsersCache) {
+                if (prof.user_id === _myAdminId) continue;
+                if (_friendshipMap[prof.user_id]) { skipped++; continue; }
+                const { data: fship, error } = await supabase.from('friendships').insert({
+                    sender_id: _myAdminId,
+                    receiver_id: prof.user_id,
+                    status: 'accepted',  // 管理员直接接受
+                    tenant_slug: 'uscgcc'
+                }).select().single();
+                if (!error) {
+                    _friendshipMap[prof.user_id] = { id: fship?.id, status: 'accepted', isSender: true };
+                    // 系统通知
+                    await supabase.from('uscgcc_inbox').insert({
+                        user_id: prof.user_id,
+                        sender_id: _myAdminId,
+                        type: 'friend_accepted',
+                        subject: '已成为好友',
+                        body: '管理员已将您添加为好友，现在可以相互沟通了！'
+                    });
+                    added++;
+                } else {
+                    skipped++;
+                }
+            }
+            alert(`✅ 完成！新增好友 ${added} 人，跳过 ${skipped} 人。`);
+            loadMembersSection();
+        };
+
+        // ══════════════════════════════════════════
+        // 沟通中心
+        // ══════════════════════════════════════════
+
+        window.switchCommsTab = function(name) {
+            document.querySelectorAll('#section-comms .tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('commsTab-' + name)?.classList.add('active');
+            document.querySelectorAll('#section-comms .tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('comms-' + name + '-tab')?.classList.add('active');
+            if (name === 'inbox') loadAdminInbox();
+            if (name === 'takeover') loadPendingAiReplies();
+        };
+
+        window.loadCommsSection = async function() {
+            await loadAiTakeoverStatus();
+            await loadPendingAiReplies();
+            await loadAdminInbox();
+        };
+
+        window.loadAiTakeoverStatus = async function() {
+            const { data } = await supabase
+                .from('tenant_settings')
+                .select('settings')
+                .eq('tenant_slug', 'uscgcc')
+                .maybeSingle();
+
+            const isOn = data?.settings?.ai_takeover === true;
+            const toggle = document.getElementById('aiTakeoverToggle');
+            const statusEl = document.getElementById('aiTakeoverStatus');
+            if (toggle) toggle.checked = isOn;
+            if (statusEl) statusEl.textContent = isOn
+                ? '🔴 接管模式已开启 — AI 回复将暂存，等待管理员审核后发送'
+                : '🟢 关闭中 — AI 自动回复（默认状态）';
+        };
+
+        window.toggleAiTakeover = async function() {
+            const isOn = document.getElementById('aiTakeoverToggle')?.checked ?? false;
+            const { error } = await supabase.from('tenant_settings').upsert({
+                tenant_slug: 'uscgcc',
+                settings: { ai_takeover: isOn },
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'tenant_slug' });
+
+            const statusEl = document.getElementById('aiTakeoverStatus');
+            if (error) {
+                alert('❌ 保存失败：' + error.message);
+                return;
+            }
+            if (statusEl) statusEl.textContent = isOn
+                ? '🔴 接管模式已开启 — AI 回复将暂存，等待管理员审核后发送'
+                : '🟢 关闭中 — AI 自动回复（默认状态）';
+        };
+
+        window.loadPendingAiReplies = async function() {
+            const { data } = await supabase
+                .from('pending_ai_responses')
+                .select('*')
+                .eq('tenant_slug', 'uscgcc')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            const container = document.getElementById('pendingAiRepliesList');
+            if (!container) return;
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="margin-top:0;"><div class="empty-state-icon">✅</div><p>暂无待审核回复</p></div>';
+                return;
+            }
+
+            container.innerHTML = data.map(item => {
+                const t = new Date(item.created_at).toLocaleString('zh-CN');
+                return `
+                <div class="pending-reply-card" id="pending-${item.id}">
+                    <div class="pending-reply-meta">🕐 ${t}</div>
+                    <div class="pending-reply-q">❓ 用户问题：${(item.question || '').replace(/</g,'&lt;')}</div>
+                    <div class="pending-reply-ai">🤖 AI 参考回复：\n${(item.ai_answer || '').replace(/</g,'&lt;')}</div>
+                    <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:6px;">✏️ 管理员回复（可修改 AI 参考内容）</label>
+                    <textarea class="pending-reply-edit" id="reply-edit-${item.id}">${(item.ai_answer || '').replace(/</g,'&lt;')}</textarea>
+                    <div class="item-actions" style="margin-top:10px;">
+                        <button class="action-btn approve-btn" onclick="approvePendingReply('${item.id}', '${item.user_id || ''}')">✅ 确认发送</button>
+                        <button class="action-btn reject-btn" onclick="rejectPendingReply('${item.id}')">🗑 丢弃</button>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        window.approvePendingReply = async function(itemId, userId) {
+            const textarea = document.getElementById('reply-edit-' + itemId);
+            const replyText = textarea?.value?.trim();
+            if (!replyText) { alert('回复内容不能为空'); return; }
+
+            const { error: updErr } = await supabase.from('pending_ai_responses')
+                .update({ status: 'approved', admin_reply: replyText, updated_at: new Date().toISOString() })
+                .eq('id', itemId);
+            if (updErr) { alert('❌ 更新失败：' + updErr.message); return; }
+
+            if (userId) {
+                await supabase.from('uscgcc_inbox').insert({
+                    user_id: userId,
+                    type: 'ai_reply',
+                    subject: '您的问题有新回复',
+                    body: replyText
+                });
+            }
+
+            document.getElementById('pending-' + itemId)?.remove();
+            const container = document.getElementById('pendingAiRepliesList');
+            if (container && container.querySelectorAll('.pending-reply-card').length === 0) {
+                container.innerHTML = '<div class="empty-state" style="margin-top:0;"><div class="empty-state-icon">✅</div><p>暂无待审核回复</p></div>';
+            }
+            alert('✅ 已发送回复到用户收件箱！');
+        };
+
+        window.rejectPendingReply = async function(itemId) {
+            if (!confirm('丢弃这条待审核回复？')) return;
+            await supabase.from('pending_ai_responses')
+                .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                .eq('id', itemId);
+            document.getElementById('pending-' + itemId)?.remove();
+            const container = document.getElementById('pendingAiRepliesList');
+            if (container && container.querySelectorAll('.pending-reply-card').length === 0) {
+                container.innerHTML = '<div class="empty-state" style="margin-top:0;"><div class="empty-state-icon">✅</div><p>暂无待审核回复</p></div>';
+            }
+        };
+
+        window.loadAdminInbox = async function() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            // 加载当前管理员的收件箱
+            const { data: inbox } = await supabase
+                .from('uscgcc_inbox')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false })
+                .limit(30);
+
+            // 加载待处理的好友申请（发给管理员的）
+            const { data: pendingReqs } = await supabase
+                .from('friendships')
+                .select('*, sender:sender_id(user_id)')
+                .eq('receiver_id', session.user.id)
+                .eq('status', 'pending');
+
+            const container = document.getElementById('adminInboxList');
+            if (!container) return;
+
+            const unread = (inbox || []).filter(m => !m.read_at).length + (pendingReqs || []).length;
+            const badge = document.getElementById('commsInboxBadge');
+            const sideBadge = document.getElementById('inboxBadge');
+            if (badge) { badge.style.display = unread > 0 ? '' : 'none'; badge.textContent = unread; }
+            if (sideBadge) { sideBadge.style.display = unread > 0 ? '' : 'none'; sideBadge.textContent = unread; }
+
+            let html = '';
+
+            // 好友申请
+            if (pendingReqs && pendingReqs.length > 0) {
+                for (const req of pendingReqs) {
+                    const { data: senderProf } = await supabase.from('profiles')
+                        .select('full_name, company, avatar_url').eq('user_id', req.sender_id).maybeSingle();
+                    const name = senderProf?.full_name || req.sender_id?.slice(0,8)+'…';
+                    html += `
+                    <div class="inbox-item unread">
+                        <div class="inbox-item-icon">🤝</div>
+                        <div class="inbox-item-body">
+                            <div class="inbox-item-subject">好友申请</div>
+                            <div class="inbox-item-text">${name}${senderProf?.company ? '（'+senderProf.company+'）' : ''} 向您发送了好友申请</div>
+                            <div class="inbox-item-time">${new Date(req.created_at).toLocaleString('zh-CN')}</div>
+                            <div class="inbox-item-actions">
+                                <button class="action-btn approve-btn" onclick="acceptFriendReq('${req.id}', '${req.sender_id}', this)">✅ 接受</button>
+                                <button class="action-btn reject-btn" onclick="rejectFriendReq('${req.id}', this)">❌ 拒绝</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            }
+
+            // 其他收件箱消息
+            const iconMap = { system:'📢', friend_request:'🤝', friend_accepted:'✅', ai_reply:'🤖', announcement:'📣' };
+            for (const msg of (inbox || [])) {
+                html += `
+                <div class="inbox-item ${msg.read_at ? '' : 'unread'}" onclick="markInboxRead('${msg.id}', this)">
+                    <div class="inbox-item-icon">${iconMap[msg.type] || '📨'}</div>
+                    <div class="inbox-item-body">
+                        <div class="inbox-item-subject">${msg.subject || '消息'}</div>
+                        <div class="inbox-item-text">${(msg.body || '').replace(/</g,'&lt;')}</div>
+                        <div class="inbox-item-time">${new Date(msg.created_at).toLocaleString('zh-CN')}</div>
+                    </div>
+                </div>`;
+            }
+
+            container.innerHTML = html || '<div class="empty-state"><div class="empty-state-icon">📬</div><p>收件箱为空</p></div>';
+        };
+
+        window.acceptFriendReq = async function(fshipId, senderId, btn) {
+            btn.disabled = true;
+            const { error } = await supabase.from('friendships')
+                .update({ status: 'accepted', updated_at: new Date().toISOString() })
+                .eq('id', fshipId);
+            if (error) { alert('❌ 操作失败：' + error.message); btn.disabled = false; return; }
+
+            // 通知对方已接受
+            const { data: { session } } = await supabase.auth.getSession();
+            const myProf = _allUsersCache?.find(p => p.user_id === session.user.id);
+            await supabase.from('uscgcc_inbox').insert({
+                user_id: senderId,
+                type: 'friend_accepted',
+                subject: '好友申请已通过',
+                body: `您的好友申请已被接受${myProf?.full_name ? '（' + myProf.full_name + '）' : ''}，现在可以相互沟通了！`
+            });
+
+            btn.closest('.inbox-item').remove();
+            loadAdminInbox();
+        };
+
+        window.rejectFriendReq = async function(fshipId, btn) {
+            btn.disabled = true;
+            await supabase.from('friendships').update({ status: 'rejected' }).eq('id', fshipId);
+            btn.closest('.inbox-item').remove();
+        };
+
+        window.markInboxRead = async function(msgId, el) {
+            if (!el.classList.contains('unread')) return;
+            el.classList.remove('unread');
+            await supabase.from('uscgcc_inbox').update({ read_at: new Date().toISOString() }).eq('id', msgId);
+        };
+
         // 检查认证
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -2218,16 +2753,36 @@ checkAuth = async function() {
                 window.location.href = '/';
                 return;
             }
-            
+
             document.getElementById('userEmail').textContent = session.user.email;
-            
+
             // 加载数据
             loadKnowledgeBase();
             loadNews();
             loadConversations();
             refreshTrashBadge();
             loadCurrentAvatar();
+            loadAdminInboxBadge();
         }
+
+        // 初始化时刷新收件箱未读角标
+        window.loadAdminInboxBadge = async function() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const { count: unreadCount } = await supabase
+                .from('uscgcc_inbox')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', session.user.id)
+                .is('read_at', null);
+            const { count: pendingFriends } = await supabase
+                .from('friendships')
+                .select('id', { count: 'exact', head: true })
+                .eq('receiver_id', session.user.id)
+                .eq('status', 'pending');
+            const total = (unreadCount || 0) + (pendingFriends || 0);
+            const badge = document.getElementById('inboxBadge');
+            if (badge) { badge.style.display = total > 0 ? '' : 'none'; badge.textContent = total; }
+        };
 
         // 加载知识库
         let knowledgePage = 0;

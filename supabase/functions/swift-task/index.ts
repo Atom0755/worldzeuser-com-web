@@ -193,10 +193,57 @@ ${context}
 3. 可用条列方式
 `.trim();
 
-    // 5️⃣ 调用 Claude
+    // 5️⃣ 检查 AI 接管开关
+    const settingsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/tenant_settings?tenant_slug=eq.${encodeURIComponent(tenant_slug)}&select=settings`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    let aiTakeover = false;
+    if (settingsRes.ok) {
+      const settingsData = await settingsRes.json();
+      aiTakeover = settingsData?.[0]?.settings?.ai_takeover === true;
+    }
+    console.log("AI takeover:", aiTakeover);
+
+    // 6️⃣ 调用 Claude
     console.log("Calling Claude...");
     const answer = await askClaude(systemPrompt, userPrompt);
     console.log("Answer received");
+
+    // 7️⃣ AI 接管模式：保存到待审核队列，返回提示消息
+    if (aiTakeover) {
+      const userId = body.user_id ?? null;
+      await fetch(`${SUPABASE_URL}/rest/v1/pending_ai_responses`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({
+          tenant_slug,
+          user_id: userId,
+          question,
+          ai_answer: answer,
+          status: "pending",
+        }),
+      });
+      return jsonResponse({
+        ok: true,
+        tenant_slug,
+        question,
+        used_model: ANTHROPIC_MODEL,
+        matches: [],
+        answer: "📋 您的问题已收到，管理员将亲自处理并在24小时内回复您。请在「收件箱」查看回复。",
+        pending: true,
+      });
+    }
 
     return jsonResponse({
       ok: true,

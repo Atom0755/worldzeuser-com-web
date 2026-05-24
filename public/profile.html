@@ -165,6 +165,31 @@
     /* ── 空状态 ── */
     .empty-tip { text-align: center; padding: 40px 0; color: #64748b; font-size: 0.85rem; }
     .empty-tip .icon { font-size: 36px; margin-bottom: 10px; }
+
+    /* ── 会员目录 ── */
+    .dir-search { width:100%; padding:9px 12px; background:rgba(15,23,42,0.8); border:1px solid rgba(56,189,248,0.2); border-radius:8px; color:#e2e8f0; font-size:0.85rem; outline:none; margin-bottom:14px; }
+    .dir-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+    .dir-card { background:rgba(30,41,59,0.7); border:1px solid rgba(56,189,248,0.12); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .dir-card-head { display:flex; align-items:center; gap:12px; }
+    .dir-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:700; flex-shrink:0; overflow:hidden; }
+    .dir-avatar img { width:42px; height:42px; object-fit:cover; border-radius:50%; }
+    .dir-name { font-weight:600; font-size:0.88rem; color:#e2e8f0; }
+    .dir-sub  { font-size:0.75rem; color:#64748b; margin-top:2px; }
+    .dir-btn  { padding:6px 14px; border:none; border-radius:6px; font-size:0.78rem; font-weight:600; cursor:pointer; }
+    .dir-btn.add { background:linear-gradient(135deg,#38bdf8,#818cf8); color:#fff; }
+    .dir-btn.add:hover { opacity:0.85; }
+    .dir-btn.pending  { background:rgba(251,191,36,0.15); color:#fbbf24; cursor:default; border:1px solid rgba(251,191,36,0.3); }
+    .dir-btn.accepted { background:rgba(34,197,94,0.15); color:#4ade80; cursor:default; border:1px solid rgba(34,197,94,0.3); }
+    .dir-locked { background:rgba(30,41,59,0.7); border:1px solid rgba(56,189,248,0.15); border-radius:16px; padding:30px 20px; text-align:center; color:#64748b; font-size:0.88rem; }
+
+    /* ── 收件箱 ── */
+    .inbox-item { background:rgba(30,41,59,0.7); border:1px solid rgba(56,189,248,0.12); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; gap:12px; cursor:pointer; }
+    .inbox-item.unread { border-left:3px solid #38bdf8; }
+    .inbox-icon { font-size:20px; flex-shrink:0; margin-top:2px; }
+    .inbox-subject { font-size:0.88rem; font-weight:600; color:#e2e8f0; margin-bottom:4px; }
+    .inbox-body { font-size:0.8rem; color:#94a3b8; white-space:pre-wrap; margin-bottom:4px; }
+    .inbox-time { font-size:0.72rem; color:#64748b; }
+    .inbox-badge { background:#ef4444; color:#fff; border-radius:10px; font-size:0.7rem; padding:1px 6px; font-weight:700; margin-left:4px; }
   </style>
 </head>
 <body>
@@ -196,10 +221,12 @@
 <!-- Tab 按钮 -->
 <div class="tabs-wrap">
   <div class="tab-btns">
-    <button class="tab-btn active" onclick="switchTab('info')">👤 个人信息</button>
-    <button class="tab-btn" onclick="switchTab('chats')">💬 对话历史</button>
-    <button class="tab-btn" onclick="switchTab('member')">🏅 会员申请</button>
-    <button class="tab-btn" onclick="switchTab('wallet')">💰 我的钱包</button>
+    <button class="tab-btn active" data-tab="info" onclick="switchTab('info')">👤 信息</button>
+    <button class="tab-btn" data-tab="chats" onclick="switchTab('chats')">💬 对话</button>
+    <button class="tab-btn" data-tab="member" onclick="switchTab('member')">🏅 会员</button>
+    <button class="tab-btn" data-tab="wallet" onclick="switchTab('wallet')">💰 钱包</button>
+    <button class="tab-btn" data-tab="directory" onclick="switchTab('directory')">👥 会员目录</button>
+    <button class="tab-btn" data-tab="inbox" onclick="switchTab('inbox')">📬 收件箱<span id="profileInboxBadge" style="display:none;" class="inbox-badge">0</span></button>
   </div>
 </div>
 
@@ -250,6 +277,20 @@
   </div>
 </div>
 
+<!-- ⑤ 会员目录 Tab -->
+<div class="tab-panel" id="tab-directory">
+  <div id="dirContent">
+    <div class="empty-tip"><div class="icon">⏳</div>加载中...</div>
+  </div>
+</div>
+
+<!-- ⑥ 收件箱 Tab -->
+<div class="tab-panel" id="tab-inbox">
+  <div id="inboxContent">
+    <div class="empty-tip"><div class="icon">⏳</div>加载中...</div>
+  </div>
+</div>
+
 <!-- ④ 钱包 Tab -->
 <div class="tab-panel" id="tab-wallet">
   <div class="wallet-grid">
@@ -288,6 +329,7 @@
   let currentUser = null;
 
   let profileComplete = false;
+  let _myMemberStatus = '';  // 'approved' | 'pending' | ''
 
   // ── Tab 切换（未完成资料时拦截非 info tab）──
   window.switchTab = function(name) {
@@ -295,24 +337,21 @@
       const status = document.getElementById('saveStatus');
       status.style.color = '#fbbf24';
       status.textContent = '⚠️ 请先填写并保存基本资料，再访问其他页面';
-      document.querySelectorAll('.tab-btn').forEach((b, i) => {
-        b.classList.toggle('active', ['info','chats','member','wallet'][i] === 'info');
-      });
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'info'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.getElementById('tab-info').classList.add('active');
       document.getElementById('pFullName').focus();
       setTimeout(() => { if (status.textContent.includes('请先填写')) status.textContent = ''; }, 4000);
       return;
     }
-    document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      const names = ['info','chats','member','wallet'];
-      b.classList.toggle('active', names[i] === name);
-    });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
-    if (name === 'chats')  loadChats();
-    if (name === 'member') loadMember();
-    if (name === 'wallet') loadWallet();
+    if (name === 'chats')     loadChats();
+    if (name === 'member')    loadMember();
+    if (name === 'wallet')    loadWallet();
+    if (name === 'directory') loadDirectory();
+    if (name === 'inbox')     loadUserInbox();
   };
 
   // ── 头像首字母 ──
@@ -493,6 +532,8 @@
       .limit(1)
       .maybeSingle();
 
+    _myMemberStatus = data?.status || '';
+
     const el = document.getElementById('memberBadge');
     if (!data) {
       el.innerHTML = '<span class="member-badge badge-none">非会员</span>';
@@ -502,6 +543,22 @@
       el.innerHTML = '<span class="member-badge badge-pending">⏳ 申请审核中</span>';
     } else if (data.status === 'rejected') {
       el.innerHTML = '<span class="member-badge badge-rejected">✗ 申请未通过</span>';
+    }
+
+    // 加载收件箱未读角标
+    loadInboxBadge();
+  }
+
+  async function loadInboxBadge() {
+    const { count } = await supabase
+      .from('uscgcc_inbox')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id)
+      .is('read_at', null);
+    const badge = document.getElementById('profileInboxBadge');
+    if (badge) {
+      badge.style.display = count > 0 ? '' : 'none';
+      badge.textContent = count || 0;
     }
   }
 
@@ -642,6 +699,211 @@
     document.getElementById('wStatus').style.color  = wStatus === 'suspended' ? '#fca5a5' : '#4ade80';
     document.getElementById('wAnchor').textContent  = anchorDay ? `每月 ${anchorDay} 日` : '首次充值后设定';
   }
+
+  // ── 会员目录 ──
+  let _dirFriendMap = {};
+
+  async function loadDirectory() {
+    const dirEl = document.getElementById('dirContent');
+
+    // 仅已通过会员可查看
+    if (_myMemberStatus !== 'approved') {
+      dirEl.innerHTML = `
+        <div class="dir-locked">
+          <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#94a3b8;margin-bottom:6px;">仅商会正式会员可查看会员目录</div>
+          <div style="font-size:0.8rem;color:#64748b;">请先完成会员申请并通过审核后，即可查看所有会员资料并申请加好友。</div>
+        </div>`;
+      return;
+    }
+
+    dirEl.innerHTML = '<div class="empty-tip"><div class="icon">⏳</div>加载中...</div>';
+
+    // 加载好友关系
+    const { data: fships } = await supabase.from('friendships').select('*');
+    _dirFriendMap = {};
+    (fships || []).forEach(f => {
+      const otherId = f.sender_id === currentUser.id ? f.receiver_id : f.sender_id;
+      _dirFriendMap[otherId] = { id: f.id, status: f.status, isSender: f.sender_id === currentUser.id };
+    });
+
+    // 加载所有已批准会员（排除自己）
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, company, position, avatar_url, membership_status')
+      .eq('membership_status', 'approved')
+      .order('full_name');
+
+    const members = (profiles || []).filter(p => p.user_id !== currentUser.id);
+
+    if (members.length === 0) {
+      dirEl.innerHTML = '<div class="empty-tip"><div class="icon">👥</div>暂无其他会员</div>';
+      return;
+    }
+
+    dirEl.innerHTML = `
+      <input class="dir-search" type="text" placeholder="搜索会员姓名 / 公司..." oninput="filterDirCards(this.value)">
+      <div class="dir-grid" id="dirGrid">
+        ${members.map(p => renderDirCard(p)).join('')}
+      </div>`;
+  }
+
+  function renderDirCard(prof) {
+    const initEl = (prof.full_name || '?')[0].toUpperCase();
+    const avatarHtml = prof.avatar_url
+      ? `<img src="${prof.avatar_url}" onerror="this.style.display='none'">`
+      : initEl;
+
+    const fship = _dirFriendMap[prof.user_id];
+    let btn = '';
+    if (!fship) {
+      btn = `<button class="dir-btn add" onclick="sendFriendReqUser('${prof.user_id}', this)">➕ 申请加好友</button>`;
+    } else if (fship.status === 'pending') {
+      btn = `<button class="dir-btn pending">⏳ 申请中</button>`;
+    } else if (fship.status === 'accepted') {
+      btn = `<button class="dir-btn accepted">✅ 好友</button>`;
+    }
+
+    return `
+    <div class="dir-card" data-name="${(prof.full_name||'').toLowerCase()}" data-company="${(prof.company||'').toLowerCase()}">
+      <div class="dir-card-head">
+        <div class="dir-avatar">${avatarHtml}</div>
+        <div>
+          <div class="dir-name">${prof.full_name || '未填写'}</div>
+          <div class="dir-sub">${prof.company || ''}${prof.position ? ' · ' + prof.position : ''}</div>
+        </div>
+      </div>
+      <div>${btn}</div>
+    </div>`;
+  }
+
+  window.filterDirCards = function(q) {
+    const lq = q.toLowerCase();
+    document.querySelectorAll('#dirGrid .dir-card').forEach(card => {
+      card.style.display = (card.dataset.name.includes(lq) || card.dataset.company.includes(lq)) ? '' : 'none';
+    });
+  };
+
+  window.sendFriendReqUser = async function(targetId, btn) {
+    btn.disabled = true; btn.textContent = '发送中...';
+    const { data: fship, error } = await supabase.from('friendships').insert({
+      sender_id: currentUser.id,
+      receiver_id: targetId,
+      status: 'pending',
+      tenant_slug: TENANT
+    }).select().single();
+
+    if (error) { alert('❌ ' + error.message); btn.disabled = false; btn.textContent = '➕ 申请加好友'; return; }
+
+    // 发送收件箱通知
+    const { data: myProf } = await supabase.from('profiles').select('full_name').eq('user_id', currentUser.id).maybeSingle();
+    await supabase.from('uscgcc_inbox').insert({
+      user_id: targetId,
+      sender_id: currentUser.id,
+      type: 'friend_request',
+      subject: '好友申请',
+      body: `${myProf?.full_name || '一位会员'} 向您发送了好友申请`,
+      ref_id: fship?.id || null
+    });
+
+    _dirFriendMap[targetId] = { id: fship?.id, status: 'pending', isSender: true };
+    btn.className = 'dir-btn pending'; btn.textContent = '⏳ 申请中'; btn.disabled = false;
+  };
+
+  // ── 收件箱 ──
+  async function loadUserInbox() {
+    const el = document.getElementById('inboxContent');
+    el.innerHTML = '<div class="empty-tip"><div class="icon">⏳</div>加载中...</div>';
+
+    const { data: msgs } = await supabase
+      .from('uscgcc_inbox')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    // 好友申请（发给我的，还在 pending 状态）
+    const { data: pendingFriends } = await supabase
+      .from('friendships')
+      .select('*')
+      .eq('receiver_id', currentUser.id)
+      .eq('status', 'pending');
+
+    if ((!msgs || msgs.length === 0) && (!pendingFriends || pendingFriends.length === 0)) {
+      el.innerHTML = '<div class="empty-tip"><div class="icon">📬</div>收件箱为空</div>';
+      return;
+    }
+
+    const iconMap = { system:'📢', friend_request:'🤝', friend_accepted:'✅', ai_reply:'🤖', announcement:'📣' };
+    let html = '';
+
+    for (const req of (pendingFriends || [])) {
+      const { data: sp } = await supabase.from('profiles').select('full_name, company').eq('user_id', req.sender_id).maybeSingle();
+      const sName = sp?.full_name || req.sender_id?.slice(0,8)+'…';
+      html += `
+      <div class="inbox-item unread">
+        <div class="inbox-icon">🤝</div>
+        <div style="flex:1;">
+          <div class="inbox-subject">好友申请</div>
+          <div class="inbox-body">${sName}${sp?.company ? '（'+sp.company+'）' : ''} 向您发送了好友申请</div>
+          <div class="inbox-time">${new Date(req.created_at).toLocaleString('zh-CN')}</div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="dir-btn add" onclick="acceptFriendReqUser('${req.id}','${req.sender_id}',this)">✅ 接受</button>
+            <button class="dir-btn" style="background:rgba(248,113,113,0.15);color:#fca5a5;border:1px solid rgba(248,113,113,0.3);" onclick="rejectFriendReqUser('${req.id}',this)">❌ 拒绝</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    for (const msg of (msgs || [])) {
+      html += `
+      <div class="inbox-item ${msg.read_at ? '' : 'unread'}" onclick="markUserInboxRead('${msg.id}',this)">
+        <div class="inbox-icon">${iconMap[msg.type] || '📨'}</div>
+        <div style="flex:1;">
+          <div class="inbox-subject">${msg.subject || '消息'}</div>
+          <div class="inbox-body">${(msg.body||'').replace(/</g,'&lt;')}</div>
+          <div class="inbox-time">${new Date(msg.created_at).toLocaleString('zh-CN')}</div>
+        </div>
+      </div>`;
+    }
+
+    el.innerHTML = html;
+
+    // 标记所有为已读（系统类消息自动已读）
+    const unreadIds = (msgs || []).filter(m => !m.read_at && m.type !== 'friend_request').map(m => m.id);
+    if (unreadIds.length > 0) {
+      await supabase.from('uscgcc_inbox').update({ read_at: new Date().toISOString() })
+        .in('id', unreadIds);
+      loadInboxBadge();
+    }
+  }
+
+  window.acceptFriendReqUser = async function(fshipId, senderId, btn) {
+    btn.disabled = true;
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', fshipId);
+    const myProf = await supabase.from('profiles').select('full_name').eq('user_id', currentUser.id).maybeSingle();
+    await supabase.from('uscgcc_inbox').insert({
+      user_id: senderId,
+      type: 'friend_accepted',
+      subject: '好友申请已通过',
+      body: `${myProf?.data?.full_name || '对方'} 接受了您的好友申请！`
+    });
+    btn.closest('.inbox-item').querySelector('.inbox-subject').textContent = '已接受好友申请';
+    btn.closest('div').remove();
+  };
+
+  window.rejectFriendReqUser = async function(fshipId, btn) {
+    btn.disabled = true;
+    await supabase.from('friendships').update({ status: 'rejected' }).eq('id', fshipId);
+    btn.closest('.inbox-item').remove();
+  };
+
+  window.markUserInboxRead = async function(msgId, el) {
+    if (!el.classList.contains('unread')) return;
+    el.classList.remove('unread');
+    await supabase.from('uscgcc_inbox').update({ read_at: new Date().toISOString() }).eq('id', msgId);
+    loadInboxBadge();
+  };
 
   window.doTopup = async function() {
     const amount = parseInt(document.getElementById('topupAmount').value || '0', 10);
