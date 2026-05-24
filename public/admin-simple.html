@@ -1163,18 +1163,16 @@
       <button class="sb-item" data-section="wallet" onclick="switchSection('wallet')">
         <span class="left">💳 钱包与订阅</span>
       </button>
-    </div>
-
-    <div class="sb-title">🚧 规划中</div>
-    <div class="sb-group">
       <button class="sb-item" data-section="members" onclick="switchSection('members')">
         <span class="left">👥 组织与成员</span>
+        <span id="membersBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700;">0</span>
       </button>
       <button class="sb-item" data-section="comms" onclick="switchSection('comms')">
-        <span class="left">💬 沟通中心</span><span id="inboxBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700;">0</span>
+        <span class="left">💬 沟通中心</span>
+        <span id="inboxBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700;">0</span>
       </button>
-      <button class="sb-item disabled" onclick="openComingSoon('安全与审计')">
-        <span class="left">🛡️ 安全与审计</span><span class="soon-tag">Soon</span>
+      <button class="sb-item" style="opacity:0.45;cursor:default;" title="规划中" tabindex="-1" onclick="return false;">
+        <span class="left">🛡️ 安全与审计</span>
       </button>
       <button class="sb-item" onclick="openTrashModal()">
         <span class="left">🗑️ 垃圾箱</span>
@@ -1574,12 +1572,22 @@
         </div>
         <div class=”tabs”>
           <div class=”tab-buttons”>
+            <button class=”tab-btn” id=”membersTab-apps” onclick=”switchMembersTab('apps')”>
+              📋 会员申请 <span id=”membersAppsBadge” style=”display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:11px;padding:1px 5px;font-weight:700;margin-left:2px;”>0</span>
+            </button>
             <button class=”tab-btn active” id=”membersTab-users” onclick=”switchMembersTab('users')”>
               注册用户 <span id=”membersUsersCountBadge” style=”font-size:12px;color:#6b7280;”></span>
             </button>
             <button class=”tab-btn” id=”membersTab-members” onclick=”switchMembersTab('members')”>
               商会会员 <span id=”membersMembersCountBadge” style=”font-size:12px;color:#6b7280;”></span>
             </button>
+          </div>
+
+          <!-- 会员申请 -->
+          <div id=”members-apps-tab” class=”tab-content” style=”padding:16px 0 0;”>
+            <div id=”membersAppsList”>
+              <div class=”empty-state”><div class=”empty-state-icon”>⏳</div><p>加载中...</p></div>
+            </div>
           </div>
 
           <!-- 注册用户 -->
@@ -2353,7 +2361,8 @@ checkAuth = async function() {
         // ══════════════════════════════════════════
 
         let _allUsersCache = [];
-        let _friendshipMap = {};  // userId -> { id, status, direction }
+        let _friendshipMap = {};
+        let _membershipAppMap = {};  // userId -> latest application
         let _myAdminId = null;
 
         window.switchMembersTab = function(name) {
@@ -2361,6 +2370,7 @@ checkAuth = async function() {
             document.getElementById('membersTab-' + name)?.classList.add('active');
             document.querySelectorAll('#section-members .tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById('members-' + name + '-tab')?.classList.add('active');
+            if (name === 'apps') renderPendingApplications();
         };
 
         window.loadMembersSection = async function() {
@@ -2368,18 +2378,43 @@ checkAuth = async function() {
             if (!session) return;
             _myAdminId = session.user.id;
 
-            // 加载好友关系
-            const { data: fships } = await supabase.from('friendships').select('*');
-            _friendshipMap = {};
-            (fships || []).forEach(f => {
-                const otherId = f.sender_id === _myAdminId ? f.receiver_id : f.sender_id;
-                _friendshipMap[otherId] = { id: f.id, status: f.status, isSender: f.sender_id === _myAdminId };
+            // 加载好友关系（friendships 表需运行迁移才存在）
+            try {
+                const { data: fships } = await supabase.from('friendships').select('*');
+                _friendshipMap = {};
+                (fships || []).forEach(f => {
+                    const otherId = f.sender_id === _myAdminId ? f.receiver_id : f.sender_id;
+                    _friendshipMap[otherId] = { id: f.id, status: f.status, isSender: f.sender_id === _myAdminId };
+                });
+            } catch (_) { _friendshipMap = {}; }
+
+            // 加载所有会员申请（无需新迁移，表已存在）
+            const { data: apps } = await supabase
+                .from('membership_applications')
+                .select('id, user_id, full_name, company, position, phone, purpose, status, created_at')
+                .eq('tenant_slug', 'uscgcc')
+                .order('created_at', { ascending: false });
+
+            _membershipAppMap = {};
+            (apps || []).forEach(a => {
+                if (!_membershipAppMap[a.user_id]) _membershipAppMap[a.user_id] = a;
             });
 
-            // 加载所有用户 profiles
+            const pendingCount = (apps || []).filter(a => a.status === 'pending').length;
+            const appsBadge = document.getElementById('membersAppsBadge');
+            const sidebarBadge = document.getElementById('membersBadge');
+            if (appsBadge) { appsBadge.style.display = pendingCount > 0 ? '' : 'none'; appsBadge.textContent = pendingCount; }
+            if (sidebarBadge) { sidebarBadge.style.display = pendingCount > 0 ? '' : 'none'; sidebarBadge.textContent = pendingCount; }
+
+            // 有待审核时自动切到申请 tab
+            if (pendingCount > 0) {
+                switchMembersTab('apps');
+            }
+
+            // 加载所有 profiles（需运行迁移后才能看到其他人）
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('user_id, full_name, company, position, avatar_url, membership_status, member_since')
+                .select('user_id, full_name, company, position, avatar_url, created_at')
                 .order('created_at', { ascending: false });
 
             _allUsersCache = profiles || [];
@@ -2388,19 +2423,109 @@ checkAuth = async function() {
             const membersEl = document.getElementById('membersMembersList');
 
             const allCards = _allUsersCache.filter(p => p.user_id !== _myAdminId);
-            const memberCards = allCards.filter(p => p.membership_status === 'approved');
+            const memberCards = allCards.filter(p => _membershipAppMap[p.user_id]?.status === 'approved');
 
-            document.getElementById('membersUsersCountBadge').textContent = `(${allCards.length})`;
-            document.getElementById('membersMembersCountBadge').textContent = `(${memberCards.length})`;
+            document.getElementById('membersUsersCountBadge').textContent = allCards.length > 0 ? `(${allCards.length})` : '';
+            document.getElementById('membersMembersCountBadge').textContent = memberCards.length > 0 ? `(${memberCards.length})` : '';
 
             usersEl.innerHTML = allCards.length > 0
                 ? allCards.map(p => renderMemberCard(p)).join('')
-                : '<div class="empty-state"><div class="empty-state-icon">👤</div><p>暂无注册用户</p></div>';
+                : '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p style="font-size:13px;">用户列表为空。如注册用户不显示，请先在 Supabase SQL Editor 运行 <b>20260523_members_comms.sql</b> 迁移。</p></div>';
 
             membersEl.innerHTML = memberCards.length > 0
                 ? memberCards.map(p => renderMemberCard(p)).join('')
                 : '<div class="empty-state"><div class="empty-state-icon">🏅</div><p>暂无已通过会员</p></div>';
+
+            renderPendingApplications();
         };
+
+        function renderPendingApplications() {
+            const listEl = document.getElementById('membersAppsList');
+            if (!listEl) return;
+            const pending = Object.values(_membershipAppMap).filter(a => a.status === 'pending');
+            if (pending.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>暂无待审核申请</p></div>';
+                return;
+            }
+            listEl.innerHTML = pending.map(app => `
+            <div class="pending-reply-card" id="app-card-${app.id}">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                    <div class="member-card-avatar" style="flex-shrink:0;">${(app.full_name||'?')[0].toUpperCase()}</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:14px;">${app.full_name || '未填写姓名'}</div>
+                        <div style="font-size:12px;color:#6b7280;">${app.company || ''}${app.position ? ' · '+app.position : ''}</div>
+                    </div>
+                    <div style="font-size:11px;color:#9ca3af;white-space:nowrap;">${new Date(app.created_at).toLocaleString('zh-CN')}</div>
+                </div>
+                <div class="pending-reply-q">📞 电话：${app.phone || '未提供'}</div>
+                <div class="pending-reply-ai">📝 申请理由：${(app.purpose || '未填写').replace(/</g,'&lt;')}</div>
+                <div class="item-actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
+                    <button class="action-btn approve-btn" onclick="approveMemberApp('${app.id}','${app.user_id}',this)">✅ 批准入会</button>
+                    <button class="action-btn reject-btn" onclick="rejectMemberApp('${app.id}','${app.user_id}',this)">❌ 拒绝</button>
+                    <button class="friend-btn view" onclick="window.showUserProfileModal('${app.user_id}')">👁 查看资料</button>
+                </div>
+            </div>`).join('');
+        }
+
+        window.approveMemberApp = async function(appId, userId, btn) {
+            if (!confirm('确认批准该用户入会？')) return;
+            btn.disabled = true; btn.textContent = '处理中...';
+            const { error } = await supabase.from('membership_applications')
+                .update({ status: 'approved', updated_at: new Date().toISOString() })
+                .eq('id', appId);
+            if (error) { alert('❌ 操作失败：' + error.message); btn.disabled = false; btn.textContent = '✅ 批准入会'; return; }
+
+            // 尝试更新 profiles（迁移后有权限）
+            await supabase.from('profiles')
+                .update({ membership_status: 'approved', member_since: new Date().toISOString() })
+                .eq('user_id', userId);
+
+            // 收件箱通知
+            try {
+                await supabase.from('uscgcc_inbox').insert({
+                    user_id: userId, type: 'system',
+                    subject: '🎉 恭喜！入会申请已通过',
+                    body: '您的 USCGCC 商会入会申请已通过审核，您现在是正式会员！可前往个人主页「会员目录」查看其他会员。'
+                });
+            } catch(_) {}
+
+            if (_membershipAppMap[userId]) _membershipAppMap[userId].status = 'approved';
+            document.getElementById('app-card-' + appId)?.remove();
+            _updateAppBadge();
+        };
+
+        window.rejectMemberApp = async function(appId, userId, btn) {
+            if (!confirm('确认拒绝该申请？')) return;
+            btn.disabled = true; btn.textContent = '处理中...';
+            const { error } = await supabase.from('membership_applications')
+                .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                .eq('id', appId);
+            if (error) { alert('❌ 操作失败：' + error.message); btn.disabled = false; btn.textContent = '❌ 拒绝'; return; }
+
+            try {
+                await supabase.from('uscgcc_inbox').insert({
+                    user_id: userId, type: 'system',
+                    subject: '入会申请结果通知',
+                    body: '您的入会申请暂未通过审核，如有疑问请联系管理员。'
+                });
+            } catch(_) {}
+
+            if (_membershipAppMap[userId]) _membershipAppMap[userId].status = 'rejected';
+            document.getElementById('app-card-' + appId)?.remove();
+            _updateAppBadge();
+        };
+
+        function _updateAppBadge() {
+            const remaining = Object.values(_membershipAppMap).filter(a => a.status === 'pending').length;
+            const appsBadge = document.getElementById('membersAppsBadge');
+            const sidebarBadge = document.getElementById('membersBadge');
+            if (appsBadge) { appsBadge.style.display = remaining > 0 ? '' : 'none'; appsBadge.textContent = remaining; }
+            if (sidebarBadge) { sidebarBadge.style.display = remaining > 0 ? '' : 'none'; sidebarBadge.textContent = remaining; }
+            const listEl = document.getElementById('membersAppsList');
+            if (listEl && !listEl.querySelector('[id^="app-card-"]')) {
+                listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>暂无待审核申请</p></div>';
+            }
+        }
 
         function renderMemberCard(prof) {
             const initials = (prof.full_name || '?')[0].toUpperCase();
@@ -2418,9 +2543,10 @@ checkAuth = async function() {
                 friendBtn = `<button class="friend-btn accepted">✅ 已是好友</button>`;
             }
 
-            const memberBadge = prof.membership_status === 'approved'
+            const appStatus = _membershipAppMap[prof.user_id]?.status || '';
+            const memberBadge = appStatus === 'approved'
                 ? `<span class="member-badge">🏅 会员</span>`
-                : (prof.membership_status === 'pending' ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 7px;border-radius:10px;">申请中</span>` : '');
+                : (appStatus === 'pending' ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 7px;border-radius:10px;">⏳ 申请中</span>` : '');
 
             return `
             <div class="member-card" data-name="${(prof.full_name||'').toLowerCase()}" data-company="${(prof.company||'').toLowerCase()}">
@@ -2769,17 +2895,31 @@ checkAuth = async function() {
         window.loadAdminInboxBadge = async function() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            const { count: unreadCount } = await supabase
-                .from('uscgcc_inbox')
+
+            // 会员申请角标（不需要新迁移）
+            const { count: pendingApps } = await supabase
+                .from('membership_applications')
                 .select('id', { count: 'exact', head: true })
-                .eq('user_id', session.user.id)
-                .is('read_at', null);
-            const { count: pendingFriends } = await supabase
-                .from('friendships')
-                .select('id', { count: 'exact', head: true })
-                .eq('receiver_id', session.user.id)
+                .eq('tenant_slug', 'uscgcc')
                 .eq('status', 'pending');
-            const total = (unreadCount || 0) + (pendingFriends || 0);
+            const mbBadge = document.getElementById('membersBadge');
+            if (mbBadge) { mbBadge.style.display = pendingApps > 0 ? '' : 'none'; mbBadge.textContent = pendingApps || 0; }
+
+            // 收件箱角标（需新迁移）
+            let total = 0;
+            try {
+                const { count: unreadCount } = await supabase
+                    .from('uscgcc_inbox')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', session.user.id)
+                    .is('read_at', null);
+                const { count: pendingFriends } = await supabase
+                    .from('friendships')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('receiver_id', session.user.id)
+                    .eq('status', 'pending');
+                total = (unreadCount || 0) + (pendingFriends || 0);
+            } catch(_) {}
             const badge = document.getElementById('inboxBadge');
             if (badge) { badge.style.display = total > 0 ? '' : 'none'; badge.textContent = total; }
         };

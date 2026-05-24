@@ -727,11 +727,23 @@
       _dirFriendMap[otherId] = { id: f.id, status: f.status, isSender: f.sender_id === currentUser.id };
     });
 
-    // 加载所有已批准会员（排除自己）
+    // 先查已批准的会员申请，再查对应 profiles（不依赖 profiles.membership_status）
+    const { data: approvedApps } = await supabase
+      .from('membership_applications')
+      .select('user_id')
+      .eq('tenant_slug', TENANT)
+      .eq('status', 'approved');
+
+    const approvedIds = (approvedApps || []).map(a => a.user_id).filter(id => id !== currentUser.id);
+    if (approvedIds.length === 0) {
+      dirEl.innerHTML = '<div class="empty-tip"><div class="icon">👥</div>暂无其他会员</div>';
+      return;
+    }
+
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('user_id, full_name, company, position, avatar_url, membership_status')
-      .eq('membership_status', 'approved')
+      .select('user_id, full_name, company, position, avatar_url')
+      .in('user_id', approvedIds)
       .order('full_name');
 
     const members = (profiles || []).filter(p => p.user_id !== currentUser.id);
