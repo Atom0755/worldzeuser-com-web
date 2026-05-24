@@ -2246,7 +2246,15 @@ checkAuth = async function() {
                 if (error) throw error;
 
                 document.getElementById('knowledgeCount').textContent = data?.length || 0;
-                
+
+                // 统计已生成向量数（embedding 不为 null）
+                const { count: embCount } = await supabase
+                    .from('knowledge_base')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('tenant_slug', 'uscgcc')
+                    .not('embedding', 'is', null);
+                document.getElementById('publishedCount').textContent = embCount ?? 0;
+
                 const listDiv = document.getElementById('knowledgeList');
                 if (data && data.length > 0) {
                     const html = data.map(item => `
@@ -2417,39 +2425,41 @@ checkAuth = async function() {
         };
 
         // 添加知识库
-        // 调用 embed-backfill，为所有 embedding=null 的条目生成向量
+        // 调用 embed-backfill，返回结果对象
         async function triggerEmbedBackfill() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const res = await fetch(`${SUPABASE_URL}/functions/v1/embed-backfill`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
-                        'apikey': SUPABASE_ANON_KEY,
-                    },
-                    body: JSON.stringify({ tenant_slug: 'uscgcc', limit: 20 }),
-                });
-                const result = await res.json();
-                if (!res.ok || !result.ok) {
-                    console.warn('embed-backfill 警告:', result.error || result);
-                } else {
-                    console.log(`✅ 向量生成完成，本次处理 ${result.embedded} 条`);
-                }
-            } catch (e) {
-                console.warn('embed-backfill 调用异常:', e.message);
-            }
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/embed-backfill`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey': SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({ tenant_slug: 'uscgcc', limit: 50 }),
+            });
+            const result = await res.json();
+            if (!res.ok || !result.ok) throw new Error(result.error || `HTTP ${res.status}`);
+            return result; // { ok, embedded, rows, ... }
         }
 
         window.runBackfillAll = async function() {
             const btn = event.target;
             btn.textContent = '⏳ 处理中…';
             btn.disabled = true;
-            await triggerEmbedBackfill();
-            btn.textContent = '⚡ 一键补全所有未向量化条目';
-            btn.disabled = false;
-            alert('✅ 向量补全完成！');
-            loadKnowledgeBase();
+            try {
+                const result = await triggerEmbedBackfill();
+                if (result.embedded === 0) {
+                    alert('✅ 所有条目均已有向量，无需重新生成。\n\n若 AI 仍答不出，可能是相似度阈值问题，请联系开发者。');
+                } else {
+                    alert(`✅ 向量补全完成！本次为 ${result.embedded} 条记录生成了向量。`);
+                }
+            } catch (e) {
+                alert(`❌ 向量生成失败：${e.message}\n\n请确认 Supabase 中已设置 OPENAI_API_KEY 环境变量。`);
+            } finally {
+                btn.textContent = '⚡ 一键补全所有未向量化条目';
+                btn.disabled = false;
+                loadKnowledgeBase();
+            }
         };
 
         window.addKnowledge = async function(event) {
@@ -2478,9 +2488,12 @@ checkAuth = async function() {
                 if (error) throw error;
 
                 submitBtn.textContent = '⏳ 生成向量中…';
-                await triggerEmbedBackfill();
-
-                alert('✅ 知识库内容已保存并生成向量，AI 现在可以检索到！');
+                try {
+                    const r = await triggerEmbedBackfill();
+                    alert(`✅ 知识库内容已保存！向量生成成功（处理 ${r.embedded} 条），AI 现在可以检索到。`);
+                } catch (embedErr) {
+                    alert(`✅ 内容已保存，但向量生成失败：${embedErr.message}\n\n请在知识库页面点击"一键补全"重试。`);
+                }
                 document.getElementById('knowledgeForm').reset();
                 loadKnowledgeBase();
             } catch (error) {
@@ -3200,8 +3213,12 @@ checkAuth = async function() {
             if (error) { alert('❌ 添加失败：' + error.message); return; }
 
             closeModal('convEditModal');
-            await triggerEmbedBackfill();
-            alert('✅ 已添加到知识库并生成向量，AI 现在可以检索到！');
+            try {
+                const r = await triggerEmbedBackfill();
+                alert(`✅ 已添加到知识库！向量生成成功（处理 ${r.embedded} 条），AI 现在可以检索到。`);
+            } catch (embedErr) {
+                alert(`✅ 内容已添加，但向量生成失败：${embedErr.message}\n\n请点击"一键补全"重试。`);
+            }
             loadKnowledgeBase();
             loadConversations();
         };
