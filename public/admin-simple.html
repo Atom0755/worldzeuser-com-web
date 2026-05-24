@@ -2129,9 +2129,15 @@
 // ✅ 新增：Section 切换（概览 / 内容 / 钱包 / 占位）
 // =========================
 window.switchSection = function(section) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
   const target = document.getElementById('section-' + section);
-  if (target) target.classList.add('active');
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'block';
+  }
 
   document.querySelectorAll('.sb-item').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.querySelector(`.sb-item[data-section="${section}"]`);
@@ -2882,6 +2888,9 @@ checkAuth = async function() {
 
             document.getElementById('userEmail').textContent = session.user.email;
 
+            // 确保初始 section 正确显示（防止CSS失效导致多section同时可见）
+            switchSection('dashboard');
+
             // 加载数据
             loadKnowledgeBase();
             loadNews();
@@ -2904,6 +2913,8 @@ checkAuth = async function() {
                 .eq('status', 'pending');
             const mbBadge = document.getElementById('membersBadge');
             if (mbBadge) { mbBadge.style.display = pendingApps > 0 ? '' : 'none'; mbBadge.textContent = pendingApps || 0; }
+            const appsBadge = document.getElementById('membersAppsBadge');
+            if (appsBadge) { appsBadge.style.display = pendingApps > 0 ? '' : 'none'; appsBadge.textContent = pendingApps || 0; }
 
             // 收件箱角标（需新迁移）
             let total = 0;
