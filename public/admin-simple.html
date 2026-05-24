@@ -1206,6 +1206,11 @@
                         <div class="stat-label">已生成向量</div>
                     </div>
                 </div>
+                <div style="text-align:right;margin-bottom:10px;">
+                    <button onclick="runBackfillAll()" style="background:#667eea;color:white;border:none;padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer;">
+                        ⚡ 一键补全所有未向量化条目
+                    </button>
+                </div>
 
                 <div class="form-section">
                     <h2>➕ 添加知识库内容</h2>
@@ -2412,9 +2417,48 @@ checkAuth = async function() {
         };
 
         // 添加知识库
+        // 调用 embed-backfill，为所有 embedding=null 的条目生成向量
+        async function triggerEmbedBackfill() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/embed-backfill`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({ tenant_slug: 'uscgcc', limit: 20 }),
+                });
+                const result = await res.json();
+                if (!res.ok || !result.ok) {
+                    console.warn('embed-backfill 警告:', result.error || result);
+                } else {
+                    console.log(`✅ 向量生成完成，本次处理 ${result.embedded} 条`);
+                }
+            } catch (e) {
+                console.warn('embed-backfill 调用异常:', e.message);
+            }
+        }
+
+        window.runBackfillAll = async function() {
+            const btn = event.target;
+            btn.textContent = '⏳ 处理中…';
+            btn.disabled = true;
+            await triggerEmbedBackfill();
+            btn.textContent = '⚡ 一键补全所有未向量化条目';
+            btn.disabled = false;
+            alert('✅ 向量补全完成！');
+            loadKnowledgeBase();
+        };
+
         window.addKnowledge = async function(event) {
             event.preventDefault();
-            
+            const submitBtn = event.target.querySelector('[type="submit"]');
+            const origText = submitBtn.textContent;
+            submitBtn.textContent = '⏳ 保存中…';
+            submitBtn.disabled = true;
+
             const title = document.getElementById('knowledgeTitle').value;
             const category = document.getElementById('knowledgeCategory').value;
             const content = document.getElementById('knowledgeContent').value;
@@ -2433,12 +2477,18 @@ checkAuth = async function() {
 
                 if (error) throw error;
 
-                alert('✅ 知识库内容添加成功！');
+                submitBtn.textContent = '⏳ 生成向量中…';
+                await triggerEmbedBackfill();
+
+                alert('✅ 知识库内容已保存并生成向量，AI 现在可以检索到！');
                 document.getElementById('knowledgeForm').reset();
                 loadKnowledgeBase();
             } catch (error) {
                 console.error('添加失败:', error);
                 alert('❌ 添加失败：' + error.message);
+            } finally {
+                submitBtn.textContent = origText;
+                submitBtn.disabled = false;
             }
         };
 
@@ -3150,7 +3200,8 @@ checkAuth = async function() {
             if (error) { alert('❌ 添加失败：' + error.message); return; }
 
             closeModal('convEditModal');
-            alert('✅ 已添加到知识库！');
+            await triggerEmbedBackfill();
+            alert('✅ 已添加到知识库并生成向量，AI 现在可以检索到！');
             loadKnowledgeBase();
             loadConversations();
         };
